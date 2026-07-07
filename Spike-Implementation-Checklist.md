@@ -1,22 +1,21 @@
-Spike Implementation Checklist
+# Spike Implementation Checklist
+
 Minimal Xcode Spike — One App, Shield-to-Safe-Place Flow
 
 Status: Planning artifact only. No Swift code in this document.
 Scope: One specific selected app. Three targets. Family Controls + App Groups only.
-Primary path dependency: ShieldActionResponse.openParentalControlsApp (Apple docs: iOS/iPadOS 26.5+).
+Primary path dependency: `ShieldActionResponse.openParentalControlsApp` (Apple docs: iOS/iPadOS 26.5+).
 Ready for: Stage 0 Git setup (after API availability is confirmed on dev Mac + test device).
 
 
-================================================================================
-STAGE 0 — GIT + PLANNING ARTIFACTS (BEFORE XCODE)
-================================================================================
+## Stage 0 — Git + Planning Artifacts (Before Xcode)
 
-Actions
+**Actions**
 - Initialize Git repository in project root.
 - Add .gitignore for Xcode/macOS (DerivedData, xcuserdata, .DS_Store, etc.).
 - Commit planning artifacts only:
-  - Feasibility-Research-Plan.txt
-  - Spike-Implementation-Checklist.txt
+  - Feasibility-Research-Plan.md
+  - Spike-Implementation-Checklist.md
 
 Commit message suggestion:
   docs: add feasibility plan and spike implementation checklist
@@ -30,11 +29,9 @@ Next step after Stage 0 commit:
 - Run Stage 0.5 API availability check on your Mac and test iPhone before creating the Xcode project or proceeding to Milestone B/C.
 
 
-================================================================================
-STAGE 0.5 — API AVAILABILITY CHECK (BEFORE MILESTONE B / C)
-================================================================================
+## Stage 0.5 — API Availability Check (Before Milestone B / C)
 
-This spike depends on ShieldActionResponse.openParentalControlsApp as the primary
+This spike depends on `ShieldActionResponse.openParentalControlsApp` as the primary
 Safe Place entry path. Apple documentation currently shows this API on iOS/iPadOS
 26.5+. Do not assume iOS 17.0 is sufficient.
 
@@ -43,19 +40,19 @@ device provisioning for feature code, or authorization implementation.
 
 On your Mac (Xcode SDK)
 - [ ] Open the installed Xcode version you will use for the spike.
-- [ ] Confirm ManagedSettings (or ManagedSettingsUI) exposes ShieldActionResponse.openParentalControlsApp in the SDK:
-      - Quick check: Xcode > Open Developer Documentation, search openParentalControlsApp
+- [ ] Confirm ManagedSettings (or ManagedSettingsUI) exposes `ShieldActionResponse.openParentalControlsApp` in the SDK:
+      - Quick check: Xcode > Open Developer Documentation, search `openParentalControlsApp`
       - Or create a throwaway file importing ManagedSettings and verify autocomplete / symbol availability
 - [ ] Note the Xcode version and SDK version in README or spike notes.
 - [ ] Do not set a final deployment target until this symbol is confirmed in your SDK.
 
 On your test iPhone / iPad
 - [ ] Confirm device OS version (Settings > General > About).
-- [ ] Device must run an iOS/iPadOS version that supports openParentalControlsApp (26.5+ per current Apple docs).
+- [ ] Device must run an iOS/iPadOS version that supports `openParentalControlsApp` (26.5+ per current Apple docs).
 - [ ] If the device OS is too old, stop the spike and document: primary path cannot be tested on this setup.
 
 Go / no-go decision
-- GO: SDK exposes openParentalControlsApp AND test device is on a supported OS version.
+- GO: SDK exposes `openParentalControlsApp` AND test device is on a supported OS version.
       Proceed to Milestone A (Xcode project) and Milestone B (entitlements/signing).
 - NO-GO: API missing from SDK OR test device below required OS.
       Stop the spike. Document Xcode version, SDK, device model, and OS version.
@@ -65,17 +62,14 @@ Go / no-go decision
 Record in spike notes (template)
 - Xcode version:
 - iOS SDK version:
-- openParentalControlsApp found in SDK: yes / no
+- `openParentalControlsApp` found in SDK: yes / no
 - Test device model:
 - Test device OS:
 - OS meets 26.5+ requirement: yes / no
 - Decision: proceed / stop
 
 
-================================================================================
-1. REQUIRED XCODE PROJECT SETUP
-================================================================================
-
+## 1. Required Xcode Project Setup
 Project type
 - iOS App (SwiftUI)
 - Interface: SwiftUI
@@ -83,15 +77,15 @@ Project type
 
 Deployment target (do not finalize until Stage 0.5 passes)
 - Do NOT assume iOS 17.0 is sufficient for this spike.
-- The primary spike path requires ShieldActionResponse.openParentalControlsApp.
-- Apple documentation currently shows openParentalControlsApp on iOS/iPadOS 26.5+.
+- The primary spike path requires `ShieldActionResponse.openParentalControlsApp`.
+- Apple documentation currently shows `openParentalControlsApp` on iOS/iPadOS 26.5+.
 - Set the Xcode project deployment target only after confirming API availability in your installed SDK (Stage 0.5).
-- Use the SDK that exposes openParentalControlsApp; match or exceed the documented minimum OS for that API.
-- Spike supports only OS versions where openParentalControlsApp can be compiled and run on a real device.
+- Use the SDK that exposes `openParentalControlsApp`; match or exceed the documented minimum OS for that API.
+- Spike supports only OS versions where `openParentalControlsApp` can be compiled and run on a real device.
 
 Test device requirement
-- Physical iPhone or iPad must run an iOS/iPadOS version that supports openParentalControlsApp.
-- Simulator is not valid for shield or openParentalControlsApp validation.
+- Physical iPhone or iPad must run an iOS/iPadOS version that supports `openParentalControlsApp`.
+- Simulator is not valid for shield or `openParentalControlsApp` validation.
 
 Project name (placeholder)
 - SafePlaceSpike
@@ -127,15 +121,12 @@ Provisioning
 - Regenerate provisioning profiles after adding capabilities.
 
 
-================================================================================
-2. REQUIRED TARGETS AND RESPONSIBILITIES
-================================================================================
-
+## 2. Required Targets And Responsibilities
 Target                          | Product Type              | What It Does
 --------------------------------|---------------------------|----------------------------------------------
 SafePlaceSpike                  | iOS Application           | Auth, app picker, shield apply/clear, handoff read, Safe Place UI, spike debug status
 SafePlaceSpikeShieldConfig      | Shield Configuration Ext  | Supplies custom shield title, subtitle, button labels
-SafePlaceSpikeShieldAction      | Shield Action Extension   | Handles shield button taps, writes App Group marker, returns openParentalControlsApp
+SafePlaceSpikeShieldAction      | Shield Action Extension   | Handles shield button taps, writes App Group marker, returns `openParentalControlsApp`
 
 
 Out of scope (do not create)
@@ -144,10 +135,7 @@ Out of scope (do not create)
 - App Clip, Watch, Widget, Notification Service extensions
 
 
-================================================================================
-3. REQUIRED CAPABILITIES / ENTITLEMENTS PER TARGET
-================================================================================
-
+## 3. Required Capabilities / Entitlements Per Target
 Placeholder team prefix: com.yourcompany
 Replace with your real reverse-DNS prefix before creating the Xcode project.
 
@@ -176,10 +164,7 @@ Apple Developer portal checklist
 - [ ] Provisioning profiles refreshed for all three targets
 
 
-================================================================================
-4. APP GROUP IDENTIFIER (PLACEHOLDER)
-================================================================================
-
+## 4. App Group Identifier (Placeholder)
 App Group ID
 - group.com.yourcompany.safeplace.spike
 
@@ -196,10 +181,7 @@ Do not store
 - URLs, domains, app names, browsing history, or usage telemetry
 
 
-================================================================================
-5. BUNDLE ID ASSUMPTIONS (PLACEHOLDERS)
-================================================================================
-
+## 5. Bundle Id Assumptions (Placeholders)
 Main app
 - com.yourcompany.safeplace.spike
 
@@ -216,13 +198,10 @@ Rule
 - Every target bundle ID that uses Family Controls must be registered and entitled separately.
 
 
-================================================================================
-6. MINIMAL FOLDER STRUCTURE
-================================================================================
-
+## 6. Minimal Folder Structure
 SafePlaceSpike/
-├── Feasibility-Research-Plan.txt          (repo root, already exists)
-├── Spike-Implementation-Checklist.txt       (repo root, this file)
+├── Feasibility-Research-Plan.md          (repo root, already exists)
+├── Spike-Implementation-Checklist.md       (repo root, this file)
 ├── .gitignore
 ├── README.md                                (optional: spike purpose + device test notes)
 │
@@ -263,10 +242,7 @@ SafePlaceSpike/
 File count target: ~15 Swift files across 3 targets. Keep helpers minimal.
 
 
-================================================================================
-7. MINIMAL SWIFT FILES NEEDED
-================================================================================
-
+## 7. Minimal Swift Files Needed
 Main app (11 files)
 - SafePlaceSpikeApp.swift
 - ContentView.swift
@@ -289,10 +265,7 @@ Shield Action extension (1–2 files)
 - HandoffWriter.swift (optional thin wrapper)
 
 
-================================================================================
-8. FILE RESPONSIBILITIES
-================================================================================
-
+## 8. File Responsibilities
 MAIN APP
 
 SafePlaceSpikeApp.swift
@@ -375,7 +348,7 @@ SHIELD ACTION EXTENSION
 
 ShieldActionExtension.swift
 - Implement ShieldActionDelegate (per Apple template).
-- On primary button: write handoff via HandoffWriter, return .openParentalControlsApp (ShieldActionResponse).
+- On primary button: write handoff via HandoffWriter, return .`openParentalControlsApp` (ShieldActionResponse).
 - On secondary button: return .close (or defer — document observed behavior).
 
 HandoffWriter.swift (optional)
@@ -383,16 +356,13 @@ HandoffWriter.swift (optional)
 - Set triggerKind = "app" always for spike.
 
 
-================================================================================
-9. EXACT IMPLEMENTATION ORDER
-================================================================================
-
+## 9. Exact Implementation Order
 Milestone A — Repository and empty Xcode shell
 - [ ] Stage 0.5 API availability check passed (GO decision recorded)
 - [ ] Git init + .gitignore
 - [ ] Commit plan + checklist (Stage 0)
 - [ ] Create Xcode project SafePlaceSpike (SwiftUI)
-- [ ] Use Xcode SDK that exposes openParentalControlsApp; set deployment target per Stage 0.5 (not iOS 17.0 by default)
+- [ ] Use Xcode SDK that exposes `openParentalControlsApp`; set deployment target per Stage 0.5 (not iOS 17.0 by default)
 - [ ] Set bundle IDs (placeholders)
 - [ ] Add Shield Configuration + Shield Action extension targets
 - [ ] Verify project builds for simulator (extensions may not run in sim; build success only)
@@ -406,7 +376,7 @@ Milestone B — Entitlements and signing
 - [ ] Build to real iPhone (blank app) to confirm provisioning works
 
 Milestone C — Authorization (main app only)
-- [ ] Prerequisite: Stage 0.5 GO (openParentalControlsApp available on SDK + test device OS)
+- [ ] Prerequisite: Stage 0.5 GO (`openParentalControlsApp` available on SDK + test device OS)
 - [ ] AuthorizationService.swift
 - [ ] SpikeAppState.swift
 - [ ] SetupView.swift + ContentView.swift wiring
@@ -432,8 +402,8 @@ Milestone G — App Group handoff (write path)
 - [ ] HandoffStore.swift in main app (read path)
 - [ ] Device test: temporarily log/handoff write from extension if needed (debug only)
 
-Milestone H — Shield Action + openParentalControlsApp
-- [ ] ShieldActionExtension.swift primary -> write handoff -> openParentalControlsApp
+Milestone H — Shield Action + `openParentalControlsApp`
+- [ ] ShieldActionExtension.swift primary -> write handoff -> `openParentalControlsApp`
 - [ ] Secondary -> close
 - [ ] Device test: tap "Open Safe Place", main app opens
 
@@ -456,12 +426,9 @@ Milestone K — Spike hardening (still minimal)
 - [ ] Final device test pass + screenshots/screen recording
 
 
-================================================================================
-10. MANUAL REAL-iPHONE TEST CHECKLIST (AFTER EACH MILESTONE)
-================================================================================
-
+## 10. Manual Real-iPhone Test Checklist (After Each Milestone)
 After Stage 0.5 (API availability) — before any Xcode feature work
-- [ ] openParentalControlsApp confirmed in installed Xcode SDK
+- [ ] `openParentalControlsApp` confirmed in installed Xcode SDK
 - [ ] Test device OS version recorded
 - [ ] Test device meets iOS/iPadOS 26.5+ (per current Apple docs for this API)
 - [ ] GO/NO-GO decision documented
@@ -501,7 +468,7 @@ After Milestone G (handoff write — if tested in isolation)
 - [ ] createdAt and sessionId present
 - [ ] triggerKind = "app"
 
-After Milestone H (openParentalControlsApp)
+After Milestone H (`openParentalControlsApp`)
 - [ ] Primary shield button opens main app (not Settings, not wrong app)
 - [ ] Transition time noted (acceptable / not acceptable)
 - [ ] Secondary button closes/deferrs without opening app
@@ -521,7 +488,7 @@ Complete strict 14-step validation:
 - [ ] 6. Custom shield shown
 - [ ] 7. "Open Safe Place" tapped
 - [ ] 8. Handoff marker written
-- [ ] 9. openParentalControlsApp returned
+- [ ] 9. `openParentalControlsApp` returned
 - [ ] 10. Main app opens
 - [ ] 11. Handoff marker read
 - [ ] 12. Safe Place presented immediately
@@ -537,10 +504,7 @@ Record for spike report
 - iPhone model, iOS version, Xcode version, date, pass/fail per step, screenshots
 
 
-================================================================================
-11. COMMON SETUP MISTAKES TO AVOID
-================================================================================
-
+## 11. Common Setup Mistakes To Avoid
 Entitlements
 - Enabling Family Controls only on main app but not on extension targets.
 - Mismatched App Group identifier string between portal, entitlements, and code.
@@ -561,7 +525,7 @@ API usage
 
 Shield extensions
 - Putting heavy logic or async network calls in Shield Action extension.
-- Not returning openParentalControlsApp on primary button.
+- Not returning `openParentalControlsApp` on primary button.
 - Writing handoff to standard UserDefaults instead of App Group suite.
 
 Main app
@@ -570,11 +534,11 @@ Main app
 - Routing to Safe Place before handoff is written (race — validate on device).
 
 Testing
-- Skipping Stage 0.5 and assuming iOS 17.0 is enough for openParentalControlsApp.
-- Creating the Xcode project before confirming openParentalControlsApp exists in the installed SDK.
-- Using a test device below the OS version required for openParentalControlsApp (currently 26.5+ per Apple docs).
+- Skipping Stage 0.5 and assuming iOS 17.0 is enough for `openParentalControlsApp`.
+- Creating the Xcode project before confirming `openParentalControlsApp` exists in the installed SDK.
+- Using a test device below the OS version required for `openParentalControlsApp` (currently 26.5+ per Apple docs).
 - Relying on Simulator for shield behavior (invalid for this spike).
-- Testing on unsupported iOS version for openParentalControlsApp.
+- Testing on unsupported iOS version for `openParentalControlsApp`.
 - Not using a real blocked app installed on device (picker must select installed app).
 
 Git / project hygiene
@@ -582,13 +546,10 @@ Git / project hygiene
 - Committing personal provisioning profiles.
 
 
-================================================================================
-12. WHAT TO COMMIT TO GIT AFTER EACH STAGE
-================================================================================
-
+## 12. What to Commit to Git After Each Stage
 Stage 0 — Planning
-- Feasibility-Research-Plan.txt
-- Spike-Implementation-Checklist.txt
+- Feasibility-Research-Plan.md
+- Spike-Implementation-Checklist.md
 - .gitignore
 
 Commit: docs: add feasibility plan and spike implementation checklist
@@ -600,7 +561,7 @@ Stage 0.5 — API availability (no code commit required if NO-GO)
 - If GO: note Xcode version, SDK version, test device model, OS version
 - If NO-GO: document stop reason; do not proceed to Milestone A
 
-Optional commit: docs: record openParentalControlsApp availability check (GO/NO-GO)
+Optional commit: docs: record `openParentalControlsApp` availability check (GO/NO-GO)
 
 ---
 
@@ -668,7 +629,7 @@ Stage G + H — Shield Action + handoff
 - HandoffWriter.swift (if separate)
 - HandoffStore.swift
 
-Commit: feat: shield action handoff and openParentalControlsApp
+Commit: feat: shield action handoff and `openParentalControlsApp`
 
 ---
 
@@ -693,21 +654,18 @@ Commit: docs: add spike test notes and retest helpers
 
 End state repository should contain
 - Planning docs at repo root
-- Minimal spike app proving one-app shield -> openParentalControlsApp -> Safe Place
+- Minimal spike app proving one-app shield -> `openParentalControlsApp` -> Safe Place
 - No backend, no analytics SDKs, no notification code, no DeviceActivity code
 
 
-================================================================================
-SPIKE SUCCESS REMINDER (DO NOT EXPAND SCOPE)
-================================================================================
-
+## Spike Success Reminder (Do Not Expand Scope)
 Pass = all true on real iPhone
 - One app selected and shielded
 - Custom shield appears
-- openParentalControlsApp opens main app
+- `openParentalControlsApp` opens main app
 - App Group handoff detected
 - Safe Place immediate with video/placeholder + 4 buttons
 
-If openParentalControlsApp fails on a supported setup: stop, document, plan follow-up spike only for fallback UX.
+If `openParentalControlsApp` fails on a supported setup: stop, document, plan follow-up spike only for fallback UX.
 If API or OS is unavailable at Stage 0.5: stop before Xcode setup; do not substitute iOS 17.0 or notification fallback in this spike.
 Do not add categories, domains, DeviceActivity, notifications, or backend to "fix" the first spike.
