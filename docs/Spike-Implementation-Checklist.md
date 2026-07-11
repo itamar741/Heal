@@ -14,8 +14,9 @@ Ready for: Stage 0 Git setup (after API availability is confirmed on dev Mac + t
 - Initialize Git repository in project root.
 - Add .gitignore for Xcode/macOS (DerivedData, xcuserdata, .DS_Store, etc.).
 - Commit planning artifacts only:
-  - Feasibility-Research-Plan.md
-  - Spike-Implementation-Checklist.md
+  - docs/Feasibility-Research-Plan.md
+  - docs/Spike-Implementation-Checklist.md
+  - docs/AI-Change-Report-Protocol.md
 
 Commit message suggestion:
   docs: add feasibility plan and spike implementation checklist
@@ -200,12 +201,14 @@ Rule
 
 ## 6. Minimal Folder Structure
 SafePlaceSpike/
-├── Feasibility-Research-Plan.md          (repo root, already exists)
-├── Spike-Implementation-Checklist.md       (repo root, this file)
+├── docs/
+│   ├── Feasibility-Research-Plan.md
+│   ├── Spike-Implementation-Checklist.md
+│   └── AI-Change-Report-Protocol.md
 ├── .gitignore
 ├── README.md                                (optional: spike purpose + device test notes)
 │
-└── SafePlaceSpike/                          (Xcode project root)
+└── Heal/                                    (Xcode project root; actual name: Heal)
     ├── SafePlaceSpike.xcodeproj
     │
     ├── SafePlaceSpike/                      (main app target)
@@ -548,8 +551,9 @@ Git / project hygiene
 
 ## 12. What to Commit to Git After Each Stage
 Stage 0 — Planning
-- Feasibility-Research-Plan.md
-- Spike-Implementation-Checklist.md
+- docs/Feasibility-Research-Plan.md
+- docs/Spike-Implementation-Checklist.md
+- docs/AI-Change-Report-Protocol.md
 - .gitignore
 
 Commit: docs: add feasibility plan and spike implementation checklist
