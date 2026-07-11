@@ -19,6 +19,8 @@ final class SpikeAppState {
     var hasPersistedAppSelection = false
     var hasRefreshedSystemState = false
     var isRefreshingSystemState = false
+    var shieldStatusMessage: String?
+    var isShieldApplied = false
 
     init() {
         reloadPersistedSelection()
@@ -128,5 +130,22 @@ final class SpikeAppState {
         selection.applicationTokens.count == 1
             && selection.categoryTokens.isEmpty
             && selection.webDomainTokens.isEmpty
+    }
+
+    func applyShieldToPersistedSelection() {
+        do {
+            try ShieldService.shared.applyShieldToPersistedSelection()
+            isShieldApplied = true
+            shieldStatusMessage = "Shield applied to the saved app."
+        } catch {
+            isShieldApplied = false
+            shieldStatusMessage = "Could not apply shield: \(error.localizedDescription)"
+        }
+    }
+
+    func clearShield() {
+        ShieldService.shared.clearShield()
+        isShieldApplied = false
+        shieldStatusMessage = "Shield cleared."
     }
 }

@@ -47,6 +47,38 @@ struct AppSelectionView: View {
             }
             .buttonStyle(.bordered)
 
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Shield status")
+                    .font(.headline)
+                Text(appState.isShieldApplied ? "Shield applied" : "Shield not applied")
+                    .font(.title3.weight(.semibold))
+            }
+
+            if let shieldStatusMessage = appState.shieldStatusMessage {
+                Text(shieldStatusMessage)
+                    .font(.footnote)
+                    .foregroundStyle(appState.isShieldApplied ? .green : .secondary)
+            }
+
+            Button {
+                appState.applyShieldToPersistedSelection()
+            } label: {
+                Text("Apply Shield")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!appState.hasPersistedAppSelection)
+
+            Button {
+                appState.clearShield()
+            } label: {
+                Text("Clear Shield")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+
             Spacer()
         }
         .padding()
