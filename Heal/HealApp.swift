@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct HealApp: App {
+    @State private var appState = SpikeAppState()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(appState: appState)
         }
     }
 }

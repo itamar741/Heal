@@ -8,17 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Bindable var appState: SpikeAppState
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+        SetupView(appState: appState)
     }
 }
 
 #Preview {
-    ContentView()
+    ContentView(appState: SpikeAppState())
 }
