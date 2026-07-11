@@ -11,7 +11,14 @@ struct ContentView: View {
     @Bindable var appState: SpikeAppState
 
     var body: some View {
-        SetupView(appState: appState)
+        if !appState.hasRefreshedSystemState {
+            ProgressView("Checking Screen Time access...")
+                .padding()
+        } else if appState.isAuthorizationApproved {
+            AppSelectionView(appState: appState)
+        } else {
+            SetupView(appState: appState)
+        }
     }
 }
 

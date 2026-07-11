@@ -79,6 +79,8 @@ struct SetupView: View {
             return .red
         case .approved:
             return .green
+        case .approvedWithDataAccess:
+            return .green
         default:
             return .secondary
         }
@@ -91,6 +93,8 @@ struct SetupView: View {
         case .denied:
             return "Try Requesting Access Again"
         case .approved:
+            return "Screen Time Access Enabled"
+        case .approvedWithDataAccess:
             return "Screen Time Access Enabled"
         default:
             return "Enable Screen Time Access"
@@ -108,6 +112,8 @@ struct SetupView: View {
         case .denied:
             return false
         case .approved:
+            return true
+        case .approvedWithDataAccess:
             return true
         default:
             return false
