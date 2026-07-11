@@ -46,7 +46,7 @@ struct SetupView: View {
                 }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(appState.isRequestingAuthorization || appState.authorizationStatus == .approved)
+            .disabled(isRequestButtonDisabled)
 
             Spacer()
         }
@@ -57,47 +57,61 @@ struct SetupView: View {
     }
 
     private var statusLabel: String {
-        if appState.authorizationStatus == .approved {
-            return "Approved"
-        }
-
-        if appState.authorizationStatus == .denied {
-            return "Denied"
-        }
-
-        if appState.authorizationStatus == .notDetermined {
+        switch appState.authorizationStatus {
+        case .notDetermined:
             return "Not determined"
+        case .denied:
+            return "Denied"
+        case .approved:
+            return "Approved"
+        case .approvedWithDataAccess:
+            return "Approved"
+        default:
+            return "Unknown"
         }
-
-        return "Unknown"
     }
 
     private var statusColor: Color {
-        if appState.authorizationStatus == .approved {
-            return .green
-        }
-
-        if appState.authorizationStatus == .denied {
-            return .red
-        }
-
-        if appState.authorizationStatus == .notDetermined {
+        switch appState.authorizationStatus {
+        case .notDetermined:
             return .orange
+        case .denied:
+            return .red
+        case .approved:
+            return .green
+        default:
+            return .secondary
         }
-
-        return .secondary
     }
 
     private var buttonTitle: String {
-        if appState.authorizationStatus == .approved {
-            return "Screen Time Access Enabled"
-        }
-
-        if appState.authorizationStatus == .denied {
+        switch appState.authorizationStatus {
+        case .notDetermined:
+            return "Enable Screen Time Access"
+        case .denied:
             return "Try Requesting Access Again"
+        case .approved:
+            return "Screen Time Access Enabled"
+        default:
+            return "Enable Screen Time Access"
+        }
+    }
+
+    private var isRequestButtonDisabled: Bool {
+        if appState.isRequestingAuthorization {
+            return true
         }
 
-        return "Enable Screen Time Access"
+        switch appState.authorizationStatus {
+        case .notDetermined:
+            return false
+        case .denied:
+            return false
+        case .approved:
+            return true
+        default:
+            return false
+        }
     }
 }
 
