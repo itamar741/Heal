@@ -21,6 +21,9 @@ final class SpikeAppState {
     var isRefreshingSystemState = false
     var shieldStatusMessage: String?
     var isShieldApplied = false
+    var handoffStatusMessage = "No handoff marker detected."
+    var detectedHandoffSessionID: String?
+    var detectedHandoffCreatedAt: Date?
 
     init() {
         reloadPersistedSelection()
@@ -38,6 +41,7 @@ final class SpikeAppState {
         isRefreshingSystemState = true
         refreshAuthorizationStatus()
         reloadPersistedSelection()
+        refreshHandoffDebugStatus()
         hasRefreshedSystemState = true
         isRefreshingSystemState = false
     }
@@ -147,5 +151,24 @@ final class SpikeAppState {
         ShieldService.shared.clearShield()
         isShieldApplied = false
         shieldStatusMessage = "Shield cleared."
+    }
+
+    func refreshHandoffDebugStatus() {
+        do {
+            guard let marker = try HandoffStore.readMarker() else {
+                detectedHandoffSessionID = nil
+                detectedHandoffCreatedAt = nil
+                handoffStatusMessage = "No pending handoff marker detected."
+                return
+            }
+
+            detectedHandoffSessionID = marker.sessionId
+            detectedHandoffCreatedAt = Date(timeIntervalSince1970: marker.createdAt)
+            handoffStatusMessage = "Pending handoff marker detected."
+        } catch {
+            detectedHandoffSessionID = nil
+            detectedHandoffCreatedAt = nil
+            handoffStatusMessage = "Could not read handoff marker: \(error.localizedDescription)"
+        }
     }
 }

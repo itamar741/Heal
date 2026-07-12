@@ -14,7 +14,7 @@ class ShieldActionExtension: ShieldActionDelegate {
     ) {
         switch action {
         case .primaryButtonPressed:
-            // TODO: Later write App Group handoff marker here.
+            try? HandoffWriter.writePendingAppHandoff()
             completionHandler(.openParentalControlsApp)
 
         case .secondaryButtonPressed:

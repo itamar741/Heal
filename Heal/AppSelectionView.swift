@@ -79,6 +79,36 @@ struct AppSelectionView: View {
             }
             .buttonStyle(.bordered)
 
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Handoff marker")
+                    .font(.headline)
+                Text(appState.handoffStatusMessage)
+                    .font(.footnote)
+                    .foregroundStyle(appState.detectedHandoffSessionID == nil ? Color.secondary : Color.green)
+
+                if let detectedHandoffSessionID = appState.detectedHandoffSessionID {
+                    Text("Session: \(detectedHandoffSessionID)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let detectedHandoffCreatedAt = appState.detectedHandoffCreatedAt {
+                    Text("Created: \(detectedHandoffCreatedAt.formatted(date: .omitted, time: .standard))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Button {
+                appState.refreshHandoffDebugStatus()
+            } label: {
+                Text("Refresh Handoff Status")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+
             Spacer()
         }
         .padding()
