@@ -297,13 +297,10 @@ ShieldStatusView.swift
 - Instruction text: "Now try opening the blocked app."
 
 SafePlaceView.swift
-- Full-screen Safe Place presented immediately when handoff is valid.
-- One AVPlayer/VideoPlayer or static placeholder module.
-- Four buttons:
-  - "The urge passed"
-  - "Show me another video" (swap placeholder or toggle label only; no feed)
-  - "I still need help" (local log / alert only for spike)
-  - "Close" (dismiss Safe Place, return to Shield Status)
+- Spike-only placeholder for Safe Place entry (not final product architecture).
+- Milestone I: minimal title, supportive message, optional shield-handoff debug text, "Back to app".
+- May later evolve into home feed, Reels-style experience, or shared content with different entry context.
+- Milestone J adds: placeholder video module and four outcome buttons (not in Milestone I).
 
 AuthorizationService.swift
 - Wrap AuthorizationCenter.shared.
@@ -331,8 +328,9 @@ SpikeAppState.swift
   - authorizationStatus
   - hasSelectedApp
   - isShieldActive
-  - shouldShowSafePlace
-  - lastHandoffSessionId (debug)
+  - pendingSafePlaceEntry (temporary spike routing flag; not final nav)
+  - launchContext (openedFromShieldHandoff, sessionId, createdAt)
+  - handoff debug fields (lastHandoffSessionId, etc.)
 
 HandoffPayload.swift
 - Codable struct: pendingSafePlaceLaunch, createdAt, triggerKind, sessionId
@@ -410,15 +408,24 @@ Milestone H — Shield Action + `openParentalControlsApp`
 - [ ] Secondary -> close
 - [ ] Device test: tap "Open Safe Place", main app opens
 
-Milestone I — Safe Place routing
-- [ ] SafePlaceSpikeApp.swift scene phase / launch handoff check
-- [ ] ContentView routes to SafePlaceView when handoff valid
-- [ ] HandoffStore.consumeHandoff() after present
-- [ ] Device test: app opens directly into Safe Place without manual navigation
+Milestone I — Safe Place handoff routing (technical spike only)
+Product note: This milestone proves handoff → entry only. It does NOT decide final
+product navigation. Safe Place may later be the main home experience (e.g. Reels/feed),
+a dedicated intervention screen, or the same content surface with a different entry
+context. Do not add tabs, final navigation architecture, or assume Safe Place is a
+permanent separate page.
 
-Milestone J — Safe Place UI
-- [ ] SafePlaceView.swift with placeholder video module
-- [ ] Four buttons with local-only outcome logging (print or in-memory)
+- [ ] HealApp.swift: scene phase / launch handoff check via `evaluatePendingSafePlaceEntry()`
+- [ ] ContentView routes to minimal `SafePlaceView` placeholder when valid pending marker exists
+- [ ] SpikeAppState: flexible entry state (`pendingSafePlaceEntry`, `launchContext`) — not final nav
+- [ ] Route only when `readMarker()` returns valid marker: pending, not stale, triggerKind == "app", sessionId present
+- [ ] Consume marker in `SafePlaceView.onAppear` (after placeholder is presented), not before
+- [ ] Normal relaunch after consume does not re-trigger Safe Place entry
+- [ ] Device test: app opens directly into Safe Place placeholder without manual navigation
+
+Milestone J — Safe Place placeholder UI (content module)
+- [ ] Expand SafePlaceView with placeholder video module (if not done in I)
+- [ ] Four outcome buttons with local-only logging (print or in-memory)
 - [ ] Device test: full 14-step validation order end-to-end
 
 Milestone K — Spike hardening (still minimal)
@@ -476,10 +483,11 @@ After Milestone H (`openParentalControlsApp`)
 - [ ] Transition time noted (acceptable / not acceptable)
 - [ ] Secondary button closes/deferrs without opening app
 
-After Milestone I (routing)
-- [ ] Main app opens directly to Safe Place (no extra taps)
-- [ ] Handoff consumed after display (second launch does not auto-open Safe Place)
+After Milestone I (handoff routing spike)
+- [ ] Main app opens directly to Safe Place placeholder (no extra taps through app selection)
+- [ ] Handoff consumed after SafePlaceView appears (second launch does not auto-open Safe Place)
 - [ ] Stale handoff (>5 min) does not open Safe Place
+- [ ] Implementation does not lock Safe Place as a permanent separate final page (flexible naming/context only)
 
 After Milestone J (full flow)
 Complete strict 14-step validation:

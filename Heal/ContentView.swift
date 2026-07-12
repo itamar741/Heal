@@ -14,6 +14,8 @@ struct ContentView: View {
         if !appState.hasRefreshedSystemState {
             ProgressView("Checking Screen Time access...")
                 .padding()
+        } else if appState.pendingSafePlaceEntry {
+            SafePlaceView(appState: appState)
         } else if appState.isAuthorizationApproved {
             AppSelectionView(appState: appState)
         } else {

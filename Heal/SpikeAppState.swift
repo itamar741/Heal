@@ -7,6 +7,12 @@ import FamilyControls
 import Foundation
 import Observation
 
+struct LaunchContext {
+    var openedFromShieldHandoff = false
+    var sessionId: String?
+    var createdAt: Date?
+}
+
 @Observable
 @MainActor
 final class SpikeAppState {
@@ -24,6 +30,9 @@ final class SpikeAppState {
     var handoffStatusMessage = "No handoff marker detected."
     var detectedHandoffSessionID: String?
     var detectedHandoffCreatedAt: Date?
+    var pendingSafePlaceEntry = false
+    var launchContext = LaunchContext()
+    var handoffConsumptionMessage: String?
 
     init() {
         reloadPersistedSelection()
@@ -170,5 +179,45 @@ final class SpikeAppState {
             detectedHandoffCreatedAt = nil
             handoffStatusMessage = "Could not read handoff marker: \(error.localizedDescription)"
         }
+    }
+
+    func evaluatePendingSafePlaceEntry() {
+        guard !pendingSafePlaceEntry else {
+            return
+        }
+
+        do {
+            guard let marker = try HandoffStore.readMarker(),
+                  marker.pendingSafePlaceLaunch,
+                  marker.triggerKind == "app",
+                  !marker.sessionId.isEmpty else {
+                return
+            }
+
+            launchContext = LaunchContext(
+                openedFromShieldHandoff: true,
+                sessionId: marker.sessionId,
+                createdAt: Date(timeIntervalSince1970: marker.createdAt)
+            )
+            pendingSafePlaceEntry = true
+        } catch {
+            handoffConsumptionMessage = "Could not read handoff marker for routing: \(error.localizedDescription)"
+        }
+    }
+
+    func consumeHandoffMarkerAfterPresentation() {
+        do {
+            try HandoffStore.consumeMarker()
+            handoffConsumptionMessage = "Handoff marker consumed."
+            refreshHandoffDebugStatus()
+        } catch {
+            handoffConsumptionMessage = "Could not consume handoff marker: \(error.localizedDescription)"
+        }
+    }
+
+    func dismissSafePlaceEntry() {
+        pendingSafePlaceEntry = false
+        launchContext = LaunchContext()
+        handoffConsumptionMessage = nil
     }
 }

@@ -17,6 +17,7 @@ struct HealApp: App {
             ContentView(appState: appState)
                 .task {
                     appState.refreshSystemState()
+                    appState.evaluatePendingSafePlaceEntry()
                 }
                 .onChange(of: scenePhase) { _, newScenePhase in
                     guard newScenePhase == .active else {
@@ -24,6 +25,7 @@ struct HealApp: App {
                     }
 
                     appState.refreshSystemState()
+                    appState.evaluatePendingSafePlaceEntry()
                 }
         }
     }
