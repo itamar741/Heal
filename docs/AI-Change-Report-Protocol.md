@@ -1,7 +1,7 @@
 # AI Change Report Protocol
 
 **Location:** `docs/AI-Change-Report-Protocol.md`  
-**Related:** [Feasibility Research Plan](Feasibility-Research-Plan.md) · [Spike Implementation Checklist](Spike-Implementation-Checklist.md)
+**Related:** [Feasibility Research Plan](Feasibility-Research-Plan.md) · [Spike Implementation Checklist](Spike-Implementation-Checklist.md) · [AI Coding Guardrails](AI-Coding-Guardrails.md)
 
 Purpose:  
 After every implementation change, the AI/developer must produce a short but precise report that explains not only **what changed**, but also **how it was implemented**, so the reviewer can verify that the agreed plan was followed and that the code quality did not drift.
@@ -28,6 +28,8 @@ Each report must answer:
 8. Did the touched files build without unresolved warnings?
 
 ---
+
+
 
 ## Before Making Changes
 
@@ -66,149 +68,15 @@ Wait for confirmation before implementing.
 
 ---
 
+
+
 ## After Making Changes
 
 After implementation, provide this report.
 
-~~~~md
-# Change Report
-
-## 1. Milestone
-
-<Milestone name>
-
-## 2. Goal
-
-<The exact goal of this change>
-
-## 3. Files Changed
-
-| File | Change Type | Summary |
-|---|---|---|
-| `path/to/file.swift` | Created / Edited / Deleted | Short summary |
-| `path/to/project.pbxproj` | Edited | Short summary |
-
-## 4. What Changed
-
-<Plain-language summary of the actual changes.>
-
-Example:
-- Added a minimal Family Controls authorization service.
-- Added a SwiftUI setup screen with a button that requests `.individual` authorization.
-- Replaced the default Hello World screen with the setup flow.
-
-## 5. How It Was Implemented
-
-Explain the implementation details clearly.
-
-Include:
-- Which Apple API was used.
-- Which object/class owns the logic.
-- How state flows through the app.
-- How UI updates after the action.
-- Whether the code is async/await, callback-based, or state-driven.
-- Any assumptions made.
-
-Example:
-`AuthorizationService` wraps `AuthorizationCenter.shared.requestAuthorization(for: .individual)`.  
-`SpikeAppState` owns the authorization status and exposes a method used by `SetupView`.  
-`ContentView` displays `SetupView` and does not yet include picker, shield, or Safe Place routing.
-
-## 6. Scope Check
-
-Confirm whether the change stayed inside the approved scope.
-
-```text
-Inside scope:
-- <item>
-- <item>
-
-Not added:
-- FamilyActivityPicker
-- ManagedSettingsStore shield application
-- App Group handoff
-- Safe Place screen
-- DeviceActivity
-- categories/domains
-- notifications
-- backend/accounts/analytics
-```
-
-If anything outside scope was changed, explain why.
-
-## 7. Code Quality Notes
-
-Include:
-- Any temporary spike-only shortcuts.
-- Any files that may need cleanup later.
-- Any risk of poor architecture or duplicated logic.
-- Any Apple template code that still looks suspicious.
-- Whether the implementation is intentionally minimal.
-
-## 8. Build Status
-
-Report one of:
-
-```text
-Build not run
-Build succeeded
-Build failed
-```
-
-If failed, include the exact error.
-
-## 9. Warnings Status
-
-Report one of:
-
-```text
-No warnings in touched files
-Warnings found in touched files
-Warnings not checked
-```
-
-If warnings were found, list:
-- The file containing the warning.
-- The warning text or category.
-- Whether it was fixed within the approved scope.
-- If not fixed, what approval is needed before changing additional scope.
-
-Warnings in touched files block moving to the next milestone unless the reviewer explicitly approves leaving them unresolved.
-
-## 10. How To Test Manually
-
-Give step-by-step test instructions.
-
-Example:
-
-1. Open `Heal.xcodeproj` in Xcode.
-2. Select the real iPhone as the run destination.
-3. Run the `Heal` scheme.
-4. Tap “Enable Screen Time Access”.
-5. Confirm whether the Family Controls authorization sheet appears.
-6. Approve or deny and observe the UI state.
-
-## 11. Expected Result
-
-<What the user should see if the change worked.>
-
-## 12. Known Issues / Follow-ups
-
-List only real known issues.
-
-Example:
-- `HealShieldConfig` still appears to be based on the wrong template. Do not fix until Shield Configuration milestone.
-- App Group is not configured yet because it belongs to a later milestone.
-
-## 13. Suggested Git Commit
-
-```bash
-git add <files>
-git commit -m "<commit message>"
-```
-~~~~
-
 ---
+
+
 
 ## Strict Scope Rules For This Spike
 
@@ -230,6 +98,8 @@ Do not add features early.
 10. Safe Place placeholder UI
 11. Minimal hardening and test report
 
+
+
 ### Do Not Add Early
 
 - Backend
@@ -247,6 +117,8 @@ Do not add features early.
 - Large video library
 
 ---
+
+
 
 ## Reviewer-Focused Requirements
 
@@ -268,6 +140,8 @@ Instead write:
 > “Created `AuthorizationService`, which wraps `AuthorizationCenter.shared.requestAuthorization(for: .individual)`. `SetupView` calls the service through `SpikeAppState`, then updates local authorization state for display. No picker, shield, App Group, or Safe Place logic was added.”
 
 ---
+
+
 
 ## Required Response After Every Change
 
@@ -294,6 +168,8 @@ Then fill the sections:
 13. Suggested Git Commit
 
 ---
+
+
 
 ## Rule For Build And Warnings
 
@@ -339,6 +215,8 @@ Do not continue to the next milestone while there are unresolved warnings in fil
 - If the enum may grow and Xcode still warns, use a safe default fallback for spike UI mapping.
 - For `ShieldAction` handling, every case must call `completionHandler` exactly once.
 
+
+
 ### Apple Template Files
 
 - Do not assume the generated template is correct.
@@ -348,6 +226,8 @@ Do not continue to the next milestone while there are unresolved warnings in fil
 - If a target appears to have the wrong template, stop and report it before modifying it.
 
 ---
+
+
 
 ## Rule For Uncertainty
 
@@ -367,6 +247,8 @@ Do not hide uncertainty behind confident wording.
 
 ---
 
+
+
 ## Rule For Apple/Xcode Project Changes
 
 If the AI edits project configuration, entitlements, or `.pbxproj`, it must explain:
@@ -378,6 +260,8 @@ If the AI edits project configuration, entitlements, or `.pbxproj`, it must expl
 - Whether the same change is needed on other targets later.
 
 ---
+
+
 
 ## Rule For Generated Code
 
@@ -391,6 +275,8 @@ When code is added, the report must identify:
 - What will need revisiting before production.
 
 ---
+
+
 
 ## Final Instruction To AI Developer
 
