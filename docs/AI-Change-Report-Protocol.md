@@ -72,7 +72,46 @@ Wait for confirmation before implementing.
 
 ## After Making Changes
 
-After implementation, provide this report.
+After implementation, provide a report.
+
+### Full Change Report (milestones)
+
+Use the full report for milestone work. Use this header:
+
+```md
+# Change Report — <Milestone Name>
+```
+
+Fill all sections:
+
+1. Milestone
+2. Goal
+3. Files Changed
+4. What Changed
+5. How It Was Implemented
+6. Scope Check
+7. Code Quality Notes
+8. Build Status
+9. Warnings Status
+10. How To Test Manually
+11. Expected Result
+12. Known Issues / Follow-ups
+13. Suggested Git Commit
+
+### Compact report (small isolated fixes)
+
+For short fixes and emergency build-error fixes, use a compact report instead:
+
+- Files changed
+- What changed
+- Verification result
+- Anything not verified
+- Scope deviation, if any
+
+For documentation-only changes, use the compact report unless the reviewer asks for a full report.
+
+The full milestone report format remains required for milestone work.
+Do not weaken the rule to stop after each milestone.
 
 ---
 
@@ -145,13 +184,13 @@ Instead write:
 
 ## Required Response After Every Change
 
-Use this exact short header:
+Choose the report level by task size (see [AI Coding Guardrails](AI-Coding-Guardrails.md) — Prompt strictness levels).
 
-```md
-# Change Report — <Milestone Name>
-```
+**Milestones:** use the full Change Report (sections 1–13 below).
 
-Then fill the sections:
+**Small isolated fixes:** use the compact report (Files changed, What changed, Verification result, Anything not verified, Scope deviation if any).
+
+Full milestone sections:
 
 1. Milestone
 2. Goal

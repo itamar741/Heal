@@ -30,15 +30,63 @@ Do not mix UI, persistence, routing, Apple API logic, and extension logic in the
 - ShieldConfigurationExtension: defines custom shield text/buttons only.
 - SafePlaceView: temporary spike placeholder; it does not define final product architecture.
 
+
+
+## Prompt strictness levels
+
+Use different levels of prompt strictness depending on task size.
+
+### Full milestone prompt
+
+Use for risky or multi-file work, especially:
+
+- Xcode targets, extensions, signing, entitlements, capabilities, App Groups
+- lifecycle, routing, persistence, navigation, security, or user data
+- unfamiliar architecture
+- work that requires real-device validation
+- work where the AI could easily expand beyond the spike
+
+The prompt should cover: milestone/goal, current state, expected direction, expected files, files requiring approval before editing, out of scope, requirements, verification, and stopping condition.
+
+### Short fix prompt
+
+Use for isolated and reversible changes when:
+
+- the exact file or function is known
+- no architecture decision is involved
+- verification is simple
+
+The prompt should cover: exact problem, expected file/function, smallest correct change, no refactor/no abstractions, and verification result.
+
+### Emergency build-error prompt
+
+Use for concrete build or runtime errors.
+
+The AI must: inspect before editing, identify likely root cause, make the smallest root-cause fix, avoid unrelated refactors, repeat the failing build/reproduction, and report the exact verification result.
+
 ## Scope control
 
 For every milestone:
 
-- Touch only the approved files.
+- Touch only approved files.
 - Do not continue to the next milestone.
 - Do not add product features early.
 - Do not add backend, analytics, notifications, DeviceActivity, categories, domains, feed/reels, or video unless explicitly approved.
-- If more files are needed than planned, stop and ask first.
+
+Expected files are guidance, not always a complete allowlist.
+If another file must be changed, stop before editing it and request approval.
+
+Sensitive files still require explicit approval before editing:
+
+- signing
+- entitlements
+- capabilities
+- Xcode project settings
+- target membership
+- dependencies
+- Shield Action / Shield Configuration paths unless the milestone explicitly targets them
+
+
 
 ## Avoid spaghetti code
 
@@ -54,11 +102,14 @@ Avoid:
 - broad file changes for a small milestone
 - build fixes that rewrite unrelated architecture
 
+
+
 ## Comments policy
 
 Use comments sparingly.
 
 Good comments explain:
+
 - why something exists
 - scope boundaries
 - temporary spike decisions
@@ -93,6 +144,8 @@ When fixing build errors:
 - report exactly what caused the error
 - state whether the fix changed behavior or only compilation
 
+
+
 ## Red flags
 
 Stop and ask before continuing if:
@@ -103,6 +156,8 @@ Stop and ask before continuing if:
 - a milestone requires unexpectedly broad file changes
 - a temporary workaround affects product architecture
 - responsibility placement is unclear
+
+
 
 ## Completion rule
 
@@ -115,3 +170,4 @@ A milestone is complete only when:
 - scope was respected
 - warnings in touched files are handled or explicitly justified
 - the change can be explained clearly
+
