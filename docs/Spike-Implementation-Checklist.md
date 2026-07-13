@@ -427,16 +427,18 @@ permanent separate page.
 - [x] Device test: app opens directly into Safe Place placeholder without manual navigation
 
 Milestone J — Safe Place placeholder UI (content module)
-- [ ] Expand SafePlaceView with placeholder video module (if not done in I)
-- [ ] Four outcome buttons with local-only logging (print or in-memory)
-- [ ] Device test: full 14-step validation order end-to-end
+**Status:** Complete — tested on real iPhone (commit `acf3b76`, July 13, 2026).
+- [x] Expand SafePlaceView with placeholder video module (if not done in I)
+- [x] Four outcome buttons with local-only logging (print or in-memory)
+- [x] Device test: full 14-step validation order end-to-end
 
 Milestone K — Spike hardening (still minimal)
-- [ ] Clear shield button for retest loop
-- [ ] Stale handoff handling (>5 min ignored)
-- [ ] Denied authorization UI state
-- [ ] Document reboot + force-quit behavior in README or spike report template
-- [ ] Final device test pass + screenshots/screen recording
+**Status:** Complete — Phase 1 validation, Phase 2 shield sync fix, and retest pass (commit `d64b221`, July 13, 2026).
+- [x] Clear shield button for retest loop (existing control; clear/reapply retest confirmed on device)
+- [x] Stale handoff handling (>5 min ignored) — implemented in `HandoffStore`; dedicated delayed-marker device test not recorded during Milestone K
+- [x] Denied/revoked authorization UI state (SetupView routing and post-fix shield status validated on device)
+- [x] Document reboot + force-quit behavior in spike validation report (`docs/Spike-Validation-Report.md`)
+- [x] Final device test pass (screenshots/screen recording: not recorded)
 
 
 ## 10. Manual Real-iPhone Test Checklist (After Each Milestone)
@@ -493,26 +495,26 @@ After Milestone I (handoff routing spike)
 - [x] Implementation does not lock Safe Place as a permanent separate final page (flexible naming/context only)
 
 After Milestone J (full flow)
-Complete strict 14-step validation:
-- [ ] 1. Authorization granted
-- [ ] 2. One app selected
-- [ ] 3. Token persisted
-- [ ] 4. Shield applied
-- [ ] 5. Blocked app launch attempted
-- [ ] 6. Custom shield shown
-- [ ] 7. "Open Safe Place" tapped
-- [ ] 8. Handoff marker written
-- [ ] 9. `openParentalControlsApp` returned
-- [ ] 10. Main app opens
-- [ ] 11. Handoff marker read
-- [ ] 12. Safe Place presented immediately
-- [ ] 13. Video/placeholder + four buttons visible
-- [ ] 14. Primary path validated (document result)
+Complete strict 14-step validation (pass — real iPhone, July 13, 2026, commit `acf3b76`):
+- [x] 1. Authorization granted
+- [x] 2. One app selected
+- [x] 3. Token persisted
+- [x] 4. Shield applied
+- [x] 5. Blocked app launch attempted
+- [x] 6. Custom shield shown
+- [x] 7. "Open Safe Place" tapped
+- [x] 8. Handoff marker written
+- [x] 9. `openParentalControlsApp` returned
+- [x] 10. Main app opens
+- [x] 11. Handoff marker read
+- [x] 12. Safe Place presented immediately
+- [x] 13. Video/placeholder + four buttons visible
+- [x] 14. Primary path validated (document result)
 
-After Milestone K (hardening)
-- [ ] Reboot device: shield still active (document behavior)
-- [ ] Force-quit main app, trigger shield again: flow still works
-- [ ] Revoke Screen Time permission in Settings: app handles gracefully
+After Milestone K (hardening) — pass on real iPhone, July 13, 2026 (commit `d64b221` after Phase 2 fix)
+- [x] Reboot device: shield still active (document behavior)
+- [x] Force-quit main app, trigger shield again: flow still works
+- [x] Revoke Screen Time permission in Settings: app handles gracefully
 
 Record for spike report
 - iPhone model, iOS version, Xcode version, date, pass/fail per step, screenshots
