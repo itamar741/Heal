@@ -2,7 +2,8 @@
 //  YouTubeEmbedWebView.swift
 //  Heal
 //
-//  Slice 1: thin WKWebView wrapper for official YouTube embed playback.
+//  Slice 1–2: thin WKWebView wrapper for official YouTube embed playback.
+//  Slice 2 reuses this wrapper for one active video at a time in the pager.
 //  Owns creation, inline media config, load/retry, and teardown only.
 //
 
