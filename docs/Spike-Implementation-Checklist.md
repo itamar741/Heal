@@ -399,29 +399,32 @@ Milestone F — Shield Configuration extension
 - [ ] Device test: blocked app shows custom title, subtitle, buttons
 
 Milestone G — App Group handoff (write path)
-- [ ] HandoffWriter in Shield Action target (or inline)
-- [ ] HandoffStore.swift in main app (read path)
-- [ ] Device test: temporarily log/handoff write from extension if needed (debug only)
+**Status:** Complete — tested on real iPhone.
+- [x] HandoffWriter in Shield Action target (or inline)
+- [x] HandoffStore.swift in main app (read path)
+- [x] Device test: temporarily log/handoff write from extension if needed (debug only)
 
 Milestone H — Shield Action + `openParentalControlsApp`
-- [ ] ShieldActionExtension.swift primary -> write handoff -> `openParentalControlsApp`
-- [ ] Secondary -> close
-- [ ] Device test: tap "Open Safe Place", main app opens
+**Status:** Complete — tested on real iPhone.
+- [x] ShieldActionExtension.swift primary -> write handoff -> `openParentalControlsApp`
+- [x] Secondary -> close
+- [x] Device test: tap "Open Safe Place", main app opens
 
 Milestone I — Safe Place handoff routing (technical spike only)
+**Status:** Complete — tested on real iPhone.
 Product note: This milestone proves handoff → entry only. It does NOT decide final
 product navigation. Safe Place may later be the main home experience (e.g. Reels/feed),
 a dedicated intervention screen, or the same content surface with a different entry
 context. Do not add tabs, final navigation architecture, or assume Safe Place is a
 permanent separate page.
 
-- [ ] HealApp.swift: scene phase / launch handoff check via `evaluatePendingSafePlaceEntry()`
-- [ ] ContentView routes to minimal `SafePlaceView` placeholder when valid pending marker exists
-- [ ] SpikeAppState: flexible entry state (`pendingSafePlaceEntry`, `launchContext`) — not final nav
-- [ ] Route only when `readMarker()` returns valid marker: pending, not stale, triggerKind == "app", sessionId present
-- [ ] Consume marker in `SafePlaceView.onAppear` (after placeholder is presented), not before
-- [ ] Normal relaunch after consume does not re-trigger Safe Place entry
-- [ ] Device test: app opens directly into Safe Place placeholder without manual navigation
+- [x] HealApp.swift: scene phase / launch handoff check via `evaluatePendingSafePlaceEntry()`
+- [x] ContentView routes to minimal `SafePlaceView` placeholder when valid pending marker exists
+- [x] SpikeAppState: flexible entry state (`pendingSafePlaceEntry`, `launchContext`) — not final nav
+- [x] Route only when `readMarker()` returns valid marker: pending, not stale, triggerKind == "app", sessionId present
+- [x] Consume marker in `SafePlaceView.onAppear` (after placeholder is presented), not before
+- [x] Normal relaunch after consume does not re-trigger Safe Place entry
+- [x] Device test: app opens directly into Safe Place placeholder without manual navigation
 
 Milestone J — Safe Place placeholder UI (content module)
 - [ ] Expand SafePlaceView with placeholder video module (if not done in I)
@@ -474,20 +477,20 @@ After Milestone F (shield UI)
 - [ ] "Close" secondary button visible
 
 After Milestone G (handoff write — if tested in isolation)
-- [ ] After primary tap, App Group contains pendingSafePlaceLaunch = true
-- [ ] createdAt and sessionId present
-- [ ] triggerKind = "app"
+- [x] After primary tap, App Group contains pendingSafePlaceLaunch = true
+- [x] createdAt and sessionId present
+- [x] triggerKind = "app"
 
 After Milestone H (`openParentalControlsApp`)
-- [ ] Primary shield button opens main app (not Settings, not wrong app)
-- [ ] Transition time noted (acceptable / not acceptable)
-- [ ] Secondary button closes/deferrs without opening app
+- [x] Primary shield button opens main app (not Settings, not wrong app)
+- [x] Transition time noted (acceptable / not acceptable)
+- [x] Secondary button closes/deferrs without opening app
 
 After Milestone I (handoff routing spike)
-- [ ] Main app opens directly to Safe Place placeholder (no extra taps through app selection)
-- [ ] Handoff consumed after SafePlaceView appears (second launch does not auto-open Safe Place)
-- [ ] Stale handoff (>5 min) does not open Safe Place
-- [ ] Implementation does not lock Safe Place as a permanent separate final page (flexible naming/context only)
+- [x] Main app opens directly to Safe Place placeholder (no extra taps through app selection)
+- [x] Handoff consumed after SafePlaceView appears (second launch does not auto-open Safe Place)
+- [x] Stale handoff (>5 min) does not open Safe Place
+- [x] Implementation does not lock Safe Place as a permanent separate final page (flexible naming/context only)
 
 After Milestone J (full flow)
 Complete strict 14-step validation:
