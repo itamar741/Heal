@@ -44,13 +44,15 @@ final class SpikeAppState {
 
     func refreshAuthorizationStatus() {
         authorizationStatus = AuthorizationService.status
+        syncShieldAppliedStateFromSystem()
     }
 
     func refreshSystemState() {
         isRefreshingSystemState = true
-        refreshAuthorizationStatus()
+        authorizationStatus = AuthorizationService.status
         reloadPersistedSelection()
         refreshHandoffDebugStatus()
+        syncShieldAppliedStateFromSystem()
         hasRefreshedSystemState = true
         isRefreshingSystemState = false
     }
@@ -64,7 +66,8 @@ final class SpikeAppState {
             try await AuthorizationService.requestIndividualAuthorization()
             refreshAuthorizationStatus()
         } catch {
-            refreshAuthorizationStatus()
+            authorizationStatus = AuthorizationService.status
+            syncShieldAppliedStateFromSystem()
             lastErrorMessage = error.localizedDescription
         }
     }
@@ -148,18 +151,42 @@ final class SpikeAppState {
     func applyShieldToPersistedSelection() {
         do {
             try ShieldService.shared.applyShieldToPersistedSelection()
-            isShieldApplied = true
-            shieldStatusMessage = "Shield applied to the saved app."
+            syncShieldAppliedStateFromSystem()
+            if isShieldApplied {
+                shieldStatusMessage = "Shield applied to the saved app."
+            } else {
+                shieldStatusMessage = "Could not verify shield was applied."
+            }
         } catch {
-            isShieldApplied = false
+            syncShieldAppliedStateFromSystem()
             shieldStatusMessage = "Could not apply shield: \(error.localizedDescription)"
         }
     }
 
     func clearShield() {
         ShieldService.shared.clearShield()
-        isShieldApplied = false
-        shieldStatusMessage = "Shield cleared."
+        syncShieldAppliedStateFromSystem()
+        if !isShieldApplied {
+            shieldStatusMessage = "Shield cleared."
+        } else {
+            shieldStatusMessage = "Could not verify shield was cleared."
+        }
+    }
+
+    private func syncShieldAppliedStateFromSystem() {
+        guard isAuthorizationApproved else {
+            isShieldApplied = false
+            shieldStatusMessage = "Screen Time access is not approved. Shield status is unavailable."
+            return
+        }
+
+        do {
+            isShieldApplied = try ShieldService.shared.isPersistedSelectionShielded()
+            shieldStatusMessage = nil
+        } catch {
+            isShieldApplied = false
+            shieldStatusMessage = "Could not read shield status: \(error.localizedDescription)"
+        }
     }
 
     func refreshHandoffDebugStatus() {
