@@ -186,6 +186,41 @@ All four buttons were visible and reachable. Console logs were not consistently 
 - Complete console verification of every outcome button during Milestone K
 - Behavior on iOS versions and devices other than the tested iPhone Air / 26.5.1
 
+## Safari Web Extension block-page spike (14 July 2026)
+
+| Field | Value |
+|-------|-------|
+| Branch | `spike/safari-web-extension-block-page` |
+| Baseline | `main` / `github/master` @ `72a2f3e` |
+| Feature | Isolated Safari Web Extension → Heal-controlled block page → Safe Place |
+| Xcode / SDK | 26.6 / iOS SDK 26.5 |
+| Device | Physical iPhone |
+| Classification | **SAFARI-EXT-1 — Full intervention path** |
+
+### Physical-device test cases
+
+| Case | Result |
+|------|--------|
+| Normal Safari → `https://example.com` | Redirected to Heal-controlled `blocked.html` (not Apple `Website Not Allowed`) |
+| Open Safe Place tap | iOS showed `Open this page in “Heal”?`; after approval, Heal opened into Safe Place with no extra setup screen |
+| Unrelated websites | Unaffected |
+| Extension disabled | Normal access to `example.com` restored |
+| Safari Private Browsing (separately enabled) | Same redirect → confirmation → Heal → Safe Place path |
+
+The iOS confirmation prompt occurs **before** switching from Safari to Heal. Opening is not silent or automatic.
+
+Managed Settings website filters (`.auto` / `.specific` / website shields) were **not** part of this path.
+
+### Still unproven for this extension path
+
+- Production-scale adult-domain coverage / remote rule updates
+- App Store review and onboarding conversion
+- Coexistence / ordering with Managed Settings website filters
+- Chrome / non-Safari browsers
+- Universal Links vs custom-scheme production security choice
+
+---
+
 ## Final Feasibility Conclusion
 
 **GO with constraints**
@@ -205,6 +240,7 @@ All four buttons were visible and reachable. Console logs were not consistently 
 - Revoke/reauthorization handling after the Milestone K fix
 - Truthful shield status synchronization from `ManagedSettingsStore`
 - Clear/reapply retest loop
+- Safari Web Extension isolated intervention path (**SAFARI-EXT-1**, 14 July 2026)
 
 ### Not proven
 
@@ -217,6 +253,7 @@ All four buttons were visible and reachable. Console logs were not consistently 
 - Long-term production persistence guarantees
 - Dedicated stale-marker device test older than five minutes
 - Complete console verification of every outcome button during Milestone K
+- Production-scale Safari extension domain coverage and Managed Settings coexistence
 
 ## Evidence and Remaining Uncertainty
 
