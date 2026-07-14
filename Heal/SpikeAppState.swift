@@ -216,7 +216,7 @@ final class SpikeAppState {
         do {
             guard let marker = try HandoffStore.readMarker(),
                   marker.pendingSafePlaceLaunch,
-                  marker.triggerKind == "app",
+                  isSupportedHandoffTriggerKind(marker.triggerKind),
                   !marker.sessionId.isEmpty else {
                 return
             }
@@ -246,5 +246,9 @@ final class SpikeAppState {
         pendingSafePlaceEntry = false
         launchContext = LaunchContext()
         handoffConsumptionMessage = nil
+    }
+
+    private func isSupportedHandoffTriggerKind(_ triggerKind: String) -> Bool {
+        triggerKind == "app" || triggerKind == "webDomain"
     }
 }
