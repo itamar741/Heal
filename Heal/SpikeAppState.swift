@@ -232,6 +232,35 @@ final class SpikeAppState {
         }
     }
 
+    /// Routes only the explicit Safari extension deep link `heal://safe-place`.
+    /// Unknown or malformed URLs are ignored and do not open Safe Place.
+    func handleIncomingURL(_ url: URL) {
+        guard url.scheme?.lowercased() == "heal" else {
+            return
+        }
+
+        let host = (url.host ?? "").lowercased()
+        let path = url.path
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            .lowercased()
+
+        guard host == "safe-place" || path == "safe-place" else {
+            return
+        }
+
+        // Reject unexpected extra path segments such as heal://safe-place/extra
+        if host == "safe-place", !path.isEmpty {
+            return
+        }
+
+        launchContext = LaunchContext(
+            openedFromShieldHandoff: false,
+            sessionId: nil,
+            createdAt: Date()
+        )
+        pendingSafePlaceEntry = true
+    }
+
     func consumeHandoffMarkerAfterPresentation() {
         do {
             try HandoffStore.consumeMarker()
