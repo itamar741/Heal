@@ -11,7 +11,21 @@ struct AppSelectionView: View {
     @State private var isPickerPresented = false
 
     var body: some View {
+        NavigationStack {
+            appSelectionContent
+        }
+    }
+
+    private var appSelectionContent: some View {
         VStack(alignment: .leading, spacing: 24) {
+            NavigationLink {
+                WebsiteFeasibilityView()
+            } label: {
+                Text("Website Feasibility (Stage 1)")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+
             Text("Choose One App")
                 .font(.largeTitle.bold())
 

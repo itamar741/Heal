@@ -39,7 +39,26 @@ class ShieldActionExtension: ShieldActionDelegate {
         for webDomain: WebDomainToken,
         completionHandler: @escaping (ShieldActionResponse) -> Void
     ) {
-        completionHandler(.close)
+        switch action {
+        case .primaryButtonPressed:
+            try? HandoffWriter.writePendingWebsiteHandoff()
+            completionHandler(.openParentalControlsApp)
+
+        case .secondaryButtonPressed:
+            completionHandler(.close)
+
+        case .firstSecondarySubmenuItemPressed:
+            completionHandler(.close)
+
+        case .secondSecondarySubmenuItemPressed:
+            completionHandler(.close)
+
+        case .thirdSecondarySubmenuItemPressed:
+            completionHandler(.close)
+
+        @unknown default:
+            completionHandler(.close)
+        }
     }
 
     override func handle(

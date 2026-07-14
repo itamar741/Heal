@@ -24,10 +24,18 @@ enum HandoffWriter {
     private static let sessionIdKey = "sessionId"
 
     static func writePendingAppHandoff() throws {
+        try writePendingHandoff(triggerKind: "app")
+    }
+
+    static func writePendingWebsiteHandoff() throws {
+        try writePendingHandoff(triggerKind: "webDomain")
+    }
+
+    private static func writePendingHandoff(triggerKind: String) throws {
         let defaults = try sharedDefaults()
         defaults.set(true, forKey: pendingKey)
         defaults.set(Date().timeIntervalSince1970, forKey: createdAtKey)
-        defaults.set("app", forKey: triggerKindKey)
+        defaults.set(triggerKind, forKey: triggerKindKey)
         defaults.set(UUID().uuidString, forKey: sessionIdKey)
     }
 

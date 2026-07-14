@@ -122,6 +122,32 @@ Stale-marker rejection is implemented in `HandoffStore` using the existing five-
 
 **Pass** — all Phase 2 regression steps confirmed on real iPhone.
 
+## Safe Place Content Prototype — Slice 1 (Single Embed)
+
+**Status:** Complete — real-iPhone pass (July 13, 2026).
+
+| Field | Value |
+|-------|-------|
+| Scope | Breathing screen → one predefined YouTube Short inside Heal |
+| Video ID | `iw4OS1Ki76g` |
+| Embed | Official YouTube iframe via `WKWebView` with app Bundle ID identity |
+| Later slices | Vertical paging, multi-video, and “I feel better now” overlay not started |
+
+### Device validation
+
+| Check | Result |
+|-------|--------|
+| Shield handoff → breathing screen | Pass |
+| No player before Continue | Pass |
+| Continue → Short loads inside Heal | Pass |
+| Autoplay after Continue | Pass |
+| Playback stays in Heal (no Safari / YouTube app) | Pass |
+| Embed error 152-4 resolved via app identity `origin` | Pass |
+| Video loops at end | Pass |
+| Temporary Exit above player; dismissal returns to normal flow | Pass |
+| Shield remains applied after Exit | Pass |
+| Normal relaunch does not reopen Safe Place | Pass |
+
 ## Outcome Button Evidence
 
 | Button | UI behavior tested | Console `print` logging |
@@ -136,7 +162,8 @@ All four buttons were visible and reachable. Console logs were not consistently 
 ## Known Limitations
 
 - Spike scope is **one app only** — no categories, web domains, or DeviceActivity.
-- Safe Place uses a **static video placeholder** — no `AVPlayer`, video asset, or feed.
+- Safe Place Slice 1 uses a **single in-app YouTube Short embed** — no vertical paging or multi-video feed yet.
+- Spike placeholder outcome buttons were replaced in Slice 1; final dismissal overlay belongs to Slice 4.
 - Outcome actions use local `print` logging; only "Show me another video" has visible footnote feedback.
 - Xcode console attach failed during parts of Milestone K testing.
 - Post-revocation authorization may show "Not determined" instead of "Denied".
@@ -152,7 +179,7 @@ All four buttons were visible and reachable. Console logs were not consistently 
 - Notifications or Universal Links as Safe Place entry fallback
 - Backend, accounts, analytics, subscriptions
 - Social or community features
-- Real video playback or recommendation feed
+- Real single-Short YouTube embed playback inside Heal (Slice 1); no recommendation feed or paging yet
 - Multiple simultaneously blocked apps
 - iPad and Simulator extension runtime behavior
 - Dedicated stale-marker device test with a marker older than five minutes
@@ -172,7 +199,7 @@ All four buttons were visible and reachable. Console logs were not consistently 
 - `openParentalControlsApp` opening Heal
 - App Group handoff write, read, and consumption
 - Immediate Safe Place presentation after shield-originated launch
-- Static placeholder video module
+- Static placeholder video module (superseded for Slice 1 by in-app YouTube embed)
 - Four outcome buttons and their approved local UI behavior
 - Reboot and force-quit behavior on the tested device
 - Revoke/reauthorization handling after the Milestone K fix
@@ -186,7 +213,7 @@ All four buttons were visible and reachable. Console logs were not consistently 
 - Category or domain shielding
 - DeviceActivity scheduling
 - Fallback behavior if `openParentalControlsApp` is unavailable or fails
-- Production video/feed architecture
+- Production video/feed architecture (Slice 1 proves one embed only)
 - Long-term production persistence guarantees
 - Dedicated stale-marker device test older than five minutes
 - Complete console verification of every outcome button during Milestone K

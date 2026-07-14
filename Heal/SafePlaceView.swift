@@ -2,143 +2,173 @@
 //  SafePlaceView.swift
 //  Heal
 //
-//  Spike-only placeholder for the Safe Place entry experience.
-//  This is not final product architecture. The same surface may later become
-//  a home feed, Reels-style experience, dedicated intervention screen, or
-//  shared content with a different entry context.
+//  Slice 2: shield handoff → breathing / grounding → finite 14-Short vertical pager.
+//  The “I feel better now” overlay belongs to a later slice.
 //
 
 import SwiftUI
 
-// Spike-only outcome labels for local logging. Not persisted or shared app-wide.
-private enum SafePlaceOutcome: String {
-    case urgePassed = "The urge passed"
-    case anotherVideo = "Show me another video"
-    case needHelp = "I still need help"
-    case close = "Close"
+private enum SafePlacePhase {
+    case breathing
+    case video
 }
 
 struct SafePlaceView: View {
     @Bindable var appState: SpikeAppState
 
-    // Spike-only local state. Outcomes are not stored in SpikeAppState.
-    @State private var recordedOutcomes: [SafePlaceOutcome] = []
-    @State private var anotherVideoFeedbackMessage: String?
+    @State private var phase: SafePlacePhase = .breathing
+    @State private var activeVideoIndex: Int?
+    @State private var embedLoadState: YouTubeEmbedLoadState = .loading
+    @State private var embedRetryToken = 0
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                Text("Safe Place")
-                    .font(.largeTitle.bold())
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-                Text("Take a breath. You chose to pause before opening that app.")
-                    .foregroundStyle(.secondary)
-
-                if appState.launchContext.openedFromShieldHandoff {
-                    Text("Opened from shield handoff")
-                        .font(.headline)
-
-                    if let sessionId = appState.launchContext.sessionId {
-                        Text("Session: \(sessionId)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if let createdAt = appState.launchContext.createdAt {
-                        Text("Created: \(createdAt.formatted(date: .omitted, time: .standard))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                videoPlaceholder
-
-                outcomeButtons
-
-                if let anotherVideoFeedbackMessage {
-                    Text(anotherVideoFeedbackMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let handoffConsumptionMessage = appState.handoffConsumptionMessage {
-                    Text(handoffConsumptionMessage)
-                        .font(.footnote)
-                        .foregroundColor(
-                            handoffConsumptionMessage.contains("Could not") ? Color.red : Color.secondary
-                        )
-                }
+            switch phase {
+            case .breathing:
+                breathingScreen
+            case .video:
+                videoScreen
             }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .onAppear {
             appState.consumeHandoffMarkerAfterPresentation()
         }
     }
 
-    // Spike-only static placeholder. No AVPlayer, asset, or feed behavior.
-    private var videoPlaceholder: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(.secondarySystemFill))
-                    .aspectRatio(16 / 9, contentMode: .fit)
+    // MARK: - Breathing
 
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.secondary)
+    private var breathingScreen: some View {
+        VStack(spacing: 28) {
+            Spacer()
+
+            Text("Safe Place")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.9))
+
+            Text("Breathe in slowly.\nHold for a moment.\nBreathe out.")
+                .font(.title3)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white.opacity(0.75))
+                .lineSpacing(6)
+
+            Spacer()
+
+            Button {
+                phase = .video
+                activeVideoIndex = 0
+                embedLoadState = .loading
+                embedRetryToken = 0
+            } label: {
+                Text("Continue")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.white.opacity(0.92))
+            .foregroundStyle(.black)
+            .padding(.horizontal, 28)
+            .padding(.bottom, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Video
+
+    private var videoScreen: some View {
+        VStack(spacing: 0) {
+            videoChromeBar
+
+            if embedLoadState == .failed {
+                failureStrip
             }
 
-            Text("Supportive video placeholder")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            videoPager
+        }
+        .onChange(of: activeVideoIndex) { _, newIndex in
+            guard newIndex != nil else { return }
+            embedLoadState = .loading
         }
     }
 
-    private var outcomeButtons: some View {
+    private var videoChromeBar: some View {
+        // Temporary Slice 1 exit — dedicated area above the player (Slice 4 replacement).
+        HStack {
+            if embedLoadState == .loading {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(.white)
+            }
+
+            Spacer()
+
+            Button {
+                appState.dismissSafePlaceEntry()
+            } label: {
+                Text("Exit (Slice 1 temp)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.black.opacity(0.55))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    private var failureStrip: some View {
         VStack(spacing: 12) {
-            outcomeButton(.urgePassed, prominent: true)
-            outcomeButton(.anotherVideo, prominent: false)
-            outcomeButton(.needHelp, prominent: false)
-            outcomeButton(.close, prominent: false)
+            Text("Couldn’t load the video.\nCheck your connection and try again.")
+                .font(.footnote)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white.opacity(0.85))
+
+            Button("Retry") {
+                embedLoadState = .loading
+                embedRetryToken += 1
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.white.opacity(0.92))
+            .foregroundStyle(.black)
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 12)
+    }
+
+    private var videoPager: some View {
+        GeometryReader { geometry in
+            ScrollView(.vertical) {
+                LazyVStack(spacing: 0) {
+                    ForEach(SafePlaceVideoCatalog.videoIDs.indices, id: \.self) { index in
+                        videoPage(index: index)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .id(index)
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $activeVideoIndex)
+            .scrollIndicators(.hidden)
         }
     }
 
     @ViewBuilder
-    private func outcomeButton(_ outcome: SafePlaceOutcome, prominent: Bool) -> some View {
-        if prominent {
-            Button {
-                handleOutcome(outcome)
-            } label: {
-                Text(outcome.rawValue)
-                    .frame(maxWidth: .infinity)
+    private func videoPage(index: Int) -> some View {
+        Color.black
+            .overlay {
+                if activeVideoIndex == index {
+                    YouTubeEmbedWebView(
+                        videoID: SafePlaceVideoCatalog.videoIDs[index],
+                        loadState: $embedLoadState,
+                        retryToken: embedRetryToken
+                    )
+                }
             }
-            .buttonStyle(.borderedProminent)
-        } else {
-            Button {
-                handleOutcome(outcome)
-            } label: {
-                Text(outcome.rawValue)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-        }
-    }
-
-    private func handleOutcome(_ outcome: SafePlaceOutcome) {
-        recordedOutcomes.append(outcome)
-        let sessionId = appState.launchContext.sessionId ?? "none"
-        print("[SafePlace] outcome=\(outcome.rawValue) session=\(sessionId) count=\(recordedOutcomes.count)")
-
-        switch outcome {
-        case .urgePassed, .needHelp:
-            break
-        case .anotherVideo:
-            anotherVideoFeedbackMessage = "Another video requested (spike: same placeholder)."
-        case .close:
-            appState.dismissSafePlaceEntry()
-        }
     }
 }
 
