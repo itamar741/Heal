@@ -192,7 +192,7 @@ All four buttons were visible and reachable. Console logs were not consistently 
 |-------|-------|
 | Branch | `spike/safari-web-extension-block-page` |
 | Baseline | `main` / `github/master` @ `72a2f3e` |
-| Feature | Isolated Safari Web Extension → Heal-controlled block page → Safe Place |
+| Feature | Isolated Safari Web Extension → Heal-controlled block page → Safe Place (`example.com` domain family) |
 | Xcode / SDK | 26.6 / iOS SDK 26.5 |
 | Device | Physical iPhone |
 | Classification | **SAFARI-EXT-1 — Full intervention path** |
@@ -202,10 +202,13 @@ All four buttons were visible and reachable. Console logs were not consistently 
 | Case | Result |
 |------|--------|
 | Normal Safari → `https://example.com` | Redirected to Heal-controlled `blocked.html` (not Apple `Website Not Allowed`) |
+| Normal Safari → `https://www.example.com` | Also redirected (tested subdomain; not every subdomain exhaustively tested) |
 | Open Safe Place tap | iOS showed `Open this page in “Heal”?`; after approval, Heal opened into Safe Place with no extra setup screen |
 | Unrelated websites | Unaffected |
 | Extension disabled | Normal access to `example.com` restored |
 | Safari Private Browsing (separately enabled) | Same redirect → confirmation → Heal → Safe Place path |
+
+Validated scope: `example.com` domain family; apex and tested `www` subdomain redirect; unrelated websites unaffected. Exact-host-only exclusion was not demonstrated and is not a spike requirement.
 
 The iOS confirmation prompt occurs **before** switching from Safari to Heal. Opening is not silent or automatic.
 
