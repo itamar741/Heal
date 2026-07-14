@@ -18,7 +18,7 @@ This record covers:
 - Formal spike validation for **app** shielding (`docs/Spike-Validation-Report.md`).
 - Adult `ActivityCategoryToken` investigation (picker + `FamilyActivityData`).
 - Completed device spike for `webContent.blockedByFilter` (`.auto` / `.specific`) and typed-`WebDomain.token` bridge (**AUTO-2** / **SPECIFIC-2** / **TOKEN-3**).
-- Remaining candidates for a Heal-controlled block page with a button: Safari Web Extension (**Requires device spike**), Control Center (deferred complement).
+- Safari Web Extension block-page path: device-validated as **SAFARI-EXT-1** (14 July 2026). Control Center remains a deferred complement.
 
 Out of scope for this document’s conclusions:
 
@@ -83,10 +83,10 @@ On a physical iPhone, branch `spike/web-content-filter-behavior` (baseline `main
 
 ### Remaining primary options
 
-1. Safari Web Extension with a Heal-controlled block page and explicit “Open Safe Place” control — **next supported candidate**; **Requires device spike**; not proven; execution order vs `blockedByFilter` is unknown.
-2. Hybrid: Safari Web Extension for Safari intervention UI; keep `.auto` / `.specific` as **blocking-only** fallback for Chrome and other browsers (AUTO-2 / SPECIFIC-2).
+1. Safari Web Extension with a Heal-controlled block page and explicit “Open Safe Place” control — **SAFARI-EXT-1 (14 July 2026)** for the isolated `example.com` domain-family spike; production-scale coverage and coexistence with Managed Settings filters remain unproven.
+2. Hybrid: Safari Web Extension for Safari intervention UI; keep `.auto` / `.specific` as **blocking-only** fallback for Chrome and other browsers (AUTO-2 / SPECIFIC-2). Execution order when both are active remains **unknown**.
 3. Control Center control to open Safe Place — complementary non-blocking entry, **deferred**.
-4. Picker-selected `WebDomainToken` → `shield.webDomains` — remains the only recorded Safari path with custom Heal shield + Safe Place button (does not satisfy typed-domain or automatic adult coverage alone).
+4. Picker-selected `WebDomainToken` → `shield.webDomains` — remains a recorded Safari path with custom Heal shield + Safe Place button (does not satisfy typed-domain or automatic adult coverage alone).
 
 ---
 
@@ -654,40 +654,98 @@ Paths considered and deprioritized for putting a Heal button *inside* Chrome’s
 
 ## 13. Safari Web Extension candidate
 
-After the `blockedByFilter` spike classified **AUTO-2** / **SPECIFIC-2** / **TOKEN-3**, a Safari Web Extension is the **next supported public-API candidate** for a Heal-controlled block page with a visible button in Safari.
+After the `blockedByFilter` spike classified **AUTO-2** / **SPECIFIC-2** / **TOKEN-3**, a Safari Web Extension was the next supported public-API candidate for a Heal-controlled block page with a visible button in Safari.
 
-Possible flow (**not proven**):
+### 13.1 Device validation — 14 July 2026 (**SAFARI-EXT-1**)
 
-```text
-Safari request
-→ extension matches blocked domain
-→ redirect to Heal-controlled block page
-→ “Open Safe Place” control
-→ Universal Link / custom URL scheme (explicit user tap)
-→ Heal / Safe Place
-```
+**Test environment**
 
-**Installed SDK / Apple-documented support (high level):** Safari Web Extensions can use `declarativeNetRequest` / `declarativeNetRequestWithHostAccess`, including `main_frame` **redirect** to an extension-bundled page. Host permissions, Private Browsing enablement, and profile permissions apply. Native messaging and App Groups can share data with the containing app; silently launching the iOS app from background extension code is **not** assumed.
+| Field | Value |
+|---|---|
+| Branch | `spike/safari-web-extension-block-page` |
+| Baseline | `main` / `github/master` @ `72a2f3e` |
+| Xcode | 26.6 |
+| iOS SDK | 26.5 |
+| Device | Physical iPhone |
+| Date | 14 July 2026 |
+| Managed Settings website filters | Not enabled for this path |
 
-**Potential strengths:** full control of block page and button; typed domains; own adult-domain list or classification service; Safari-focused.
-
-**Limits / unknowns:**
-
-- New extension target and platform surface (**not implemented**).
-- User must enable the extension and grant site permissions.
-- Private Browsing needs appropriate extension permission.
-- No bridge from Apple’s `.auto` classifier into the extension; Heal would need its own dataset/service for automatic adult coverage.
-- Opening Heal from an extension page requires an **explicit user gesture**; exact custom-scheme / Universal Link behavior **Requires device spike**.
-- Execution order when both a Safari Web Extension redirect and `blockedByFilter` are active is **unknown** — do not assume the extension replaces `Website Not Allowed` without a race/order device test.
-- Redirect stability and App Review expectations on current iOS **Require device spike**.
-
-**Status:** next isolated device spike candidate — **not proven** architecture. Do not start that branch in the same cleanup that closes `spike/web-content-filter-behavior`.
-
-Suggested future branch name (not created here):
+**Architecture tested**
 
 ```text
-spike/safari-web-extension-block-page
+Safari main-frame navigation to the example.com domain family
+→ static Manifest V3 declarativeNetRequest rule (main_frame, urlFilter ||example.com^)
+→ redirect to extension-bundled blocked.html
+→ visible “Open Safe Place” button (heal://safe-place)
+→ explicit user tap
+→ iOS confirmation: Open this page in “Heal”?
+→ Heal
+→ existing pendingSafePlaceEntry / SafePlaceView presentation
 ```
+
+Permissions used: `declarativeNetRequestWithHostAccess`; host access limited to the `example.com` domain family (`*://example.com/*`, `*://*.example.com/*`). Exactly one static rule. No dynamic/session rules. No adult-domain list. No Managed Settings `.auto` / `.specific` / website shield in this path. Exact-host-only matching is **not** a product requirement for this spike; covering the registered domain and its subdomains is the intended test scope.
+
+**Classification: SAFARI-EXT-1 — Full intervention path**
+
+The required iOS confirmation before opening Heal is an expected system-controlled UX step and does **not** invalidate the classification. App opening is **not** silent or automatic.
+
+**Validated test scope**
+
+- `example.com` domain family (apex + subdomains via the static rule).
+- Apex `https://example.com` redirect observed.
+- Tested subdomain `https://www.example.com` also redirected (not a claim that every possible subdomain was tested).
+- Unrelated websites unaffected.
+
+**Normal Safari**
+
+- `https://example.com` redirected to Heal-controlled `blocked.html`.
+- `https://www.example.com` also redirected to the Heal-controlled page.
+- Apple’s generic `Website Not Allowed` page did **not** appear.
+- `Open Safe Place` was visible.
+- Tap showed `Open this page in “Heal”?`; after approval, Heal opened into Safe Place with no extra setup screen.
+- Unrelated websites were unaffected.
+
+**Extension disabled**
+
+- Disabling the extension restored normal access to `example.com`.
+
+**Safari Private Browsing**
+
+- Extension was enabled separately for Private Browsing.
+- Same redirect → Heal page → confirmation → Heal → Safe Place path succeeded for `https://example.com`.
+- No unexpected behavior observed.
+
+**User enablement requirements (cannot be done by the app automatically)**
+
+- User must enable **Heal Safe Place** in Safari extension settings.
+- User must grant host access for `example.com`.
+- Private Browsing requires a **separate** enablement toggle.
+
+**Proven**
+
+- Safari extension can redirect the test domain to a Heal-controlled page.
+- The page can show a Heal-controlled button.
+- An explicit tap can open Heal after the iOS confirmation.
+- Heal can route into Safe Place.
+- The flow works in normal Safari.
+- The flow works in Private Browsing when separately enabled.
+- Disabling the extension restores normal access.
+- Unrelated domains remain unaffected by the isolated rule.
+
+**Still unproven**
+
+- Production-scale adult-domain coverage.
+- Dynamic or remotely updated rules.
+- App Store review and distribution behavior.
+- Onboarding and permission-conversion rates.
+- Reliability across other iOS versions.
+- Coexistence and execution ordering with Managed Settings website filters.
+- Chrome or other non-Safari browsers.
+- Production security choice between custom URL schemes and Universal Links (custom schemes are sufficient for this spike but are not strong ownership/authentication — another app could theoretically register `heal://`).
+
+**Installed SDK / Apple-documented support (high level):** Safari Web Extensions can use `declarativeNetRequest` / `declarativeNetRequestWithHostAccess`, including `main_frame` **redirect** to an extension-bundled page. Host permissions, Private Browsing enablement, and profile permissions apply. Native messaging and App Groups can share data with the containing app; silently launching the iOS app from background extension code is **not** assumed and was **not** used.
+
+**Status:** isolated feasibility path **device-validated as SAFARI-EXT-1** on 14 July 2026. Distinct from Apple’s Managed Settings `Website Not Allowed` page (AUTO-2 / SPECIFIC-2).
 
 ---
 
@@ -729,7 +787,7 @@ App Group is already used for shield handoff; a Control Center launch may not re
 | `blockedByFilter = .specific(...)` | No | Yes (device) | Blocks; generic page | Remained available (device; docs disagree) | Generic `Website Not Allowed` | No | No Heal button observed | No | **SPECIFIC-2 — Blocking only** |
 | `blockedByFilter = .auto(...)` | Yes (tested sample) | Optional add-on | Blocks; generic page | Remained available (device; docs disagree) | Generic `Website Not Allowed` | No | No Heal button observed | No | **AUTO-2 — Blocking only** |
 | Typed `WebDomain.token` → `shield.webDomains` | N/A | Attempted | N/A | N/A | N/A | N/A | N/A | N/A | **TOKEN-3 — token nil on device** |
-| Safari Web Extension | With own list/classifier | Yes | In principle | Needs extension Private permission | No | Heal-controlled page | Page button | Via link/routing | **Next candidate — Requires device spike** |
+| Safari Web Extension | With own list/classifier | Yes (`example.com` domain family) | Yes when separately enabled (device) | No | Heal-controlled page | Page button | Via `heal://safe-place` + iOS confirm | **SAFARI-EXT-1 (14 Jul 2026)** |
 | Network Extension / DNS Proxy | With own classifier | Yes | Broad | Broad | Maybe | Not inside Chrome shield | Notification at best | Notification→Heal possible | **Deprioritized** |
 | Control Center control | Does not block | Does not block | Anywhere | Anywhere | Anywhere | N/A | System control | Yes (in principle) | **Deferred complement** |
 | App `shield.applications` | N/A | N/A | N/A | N/A | N/A | Yes | Yes | Yes | **Validated (Spike-Validation-Report)** |
@@ -747,7 +805,7 @@ App Group is already used for shield handoff; a Control Center launch may not re
 | Typed `WebDomain(domain:).token` → `shield.webDomains` | **TOKEN-3 (14 Jul 2026)** | Public token was `nil` on device |
 | Chrome Network Extension / DNS / notification-first | Deferred / deprioritized | Unlikely to put a button inside Chrome’s generic shield |
 | Control Center | Deferred complement | Does not solve blocking; useful after intervention path chosen |
-| Safari Web Extension | Next candidate | **Requires device spike**; not proven |
+| Safari Web Extension | **SAFARI-EXT-1 (14 Jul 2026)** | Isolated `example.com` domain-family path proven (apex + tested `www`); production coverage / Managed Settings coexistence still unproven |
 | Hard-coding / decoding opaque tokens | Rejected | Private/unsupported; App Review risk |
 
 ---
@@ -767,16 +825,17 @@ App Group is already used for shield handoff; a Control Center launch may not re
 
 ### Still open / next spikes
 
-1. Safari Web Extension: `main_frame` redirect to Heal-controlled page + “Open Safe Place” button that opens Heal → Safe Place (**Requires device spike**).
-2. Opening Heal from an extension page (custom URL scheme vs Universal Link) under explicit user tap.
-3. Extension behavior in Safari Private Browsing and across Safari profiles.
+1. ~~Safari Web Extension minimal redirect → Heal page → Safe Place~~ — **Done: SAFARI-EXT-1 (14 July 2026)** for isolated `example.com` domain family (apex + tested `www`; normal + Private when separately enabled).
+2. Production routing security: custom URL scheme vs Universal Links (spike used `heal://safe-place`; scheme ownership is weak).
+3. Extension behavior across additional Safari profiles / OS versions.
 4. Execution order / race when both extension redirect and `blockedByFilter` are active (**unknown** — do not assume).
 5. Broader real-world coverage quality / false positives of Apple’s `.auto` classifier.
 6. Full hostname matching matrix for `.specific` (`www`, public suffix, IDN, ports, schemes).
 7. Chrome Incognito under `blockedByFilter` (not recorded in the completed spike).
-8. Production entitlement / App Review requirements for any chosen Safari Extension solution.
+8. Production entitlement / App Review / onboarding conversion for Safari Extension distribution.
 9. Production-region impact of `FamilyActivityData` EU limits (relevant if any future feature depends on data access).
 10. Control Center Safe Place entry as a complementary non-blocking path.
+11. Production-scale adult-domain list / dynamic or remote DNR rules for the Safari extension.
 
 ---
 
@@ -790,36 +849,13 @@ spike/web-content-filter-behavior
 
 Created from `main @ 48ef0f1`. Device results recorded in this document (AUTO-2 / SPECIFIC-2 / TOKEN-3). Spike implementation was temporary and is not retained as product code.
 
-### Suggested next branch
+### Completed Safari extension branch (14 July 2026)
 
 ```text
 spike/safari-web-extension-block-page
 ```
 
-### Spike goal
-
-On a physical device, prove a minimal Safari Web Extension path:
-
-```text
-Navigate to one tester-selected domain in Safari
-→ declarativeNetRequest redirect (main_frame)
-→ Heal-controlled extension HTML page
-→ visible “Open Safe Place” button
-→ explicit user tap opens Heal
-→ Heal routes to Safe Place
-```
-
-Keep `blockedByFilter` cleared for the primary redirect test. Optionally, in a separate step, re-enable `.specific` on the same domain only to observe which UI wins (order is **unknown** beforehand).
-
-### Success criteria for product fitness (Safari)
-
-```text
-Typed or listed domain blocked in Safari
-+
-Heal-controlled page with a reliable button
-+
-Safe Place open
-```
+**Result: SAFARI-EXT-1** — see §13.1. Primary redirect test kept Managed Settings website filters cleared. Coexistence / ordering vs `blockedByFilter` was **not** tested.
 
 Chrome may remain **blocking-only** via `.auto` / `.specific` in a hybrid architecture.
 
@@ -843,6 +879,7 @@ Chrome may remain **blocking-only** via `.auto` / `.specific` in a hybrid archit
 | 14 July 2026 | NO-GO Heal button inside `blockedByFilter` | Installed SDK + real-device; not a Family Controls whole-product NO-GO |
 | 14 July 2026 | Private Browsing remained available under both filters | Point-in-time device result; conflicts with Apple docs wording — interpret cautiously |
 | 14 July 2026 | Next: Safari Web Extension block-page spike | Only remaining supported candidate for Heal-controlled Safari intervention UI |
+| 14 July 2026 | **SAFARI-EXT-1** for Safari Web Extension | Real-device: `example.com` domain family (apex + tested `www`) → Heal `blocked.html` → confirm → Heal → Safe Place; normal + Private; unrelated sites unaffected; disable restores access |
 
 ---
 
@@ -850,7 +887,9 @@ Chrome may remain **blocking-only** via `.auto` / `.specific` in a hybrid archit
 
 ### Project artifacts
 
-- `docs/Spike-Validation-Report.md` — formal app-shield validation (web domains not tested).
+- `docs/Spike-Validation-Report.md` — formal app-shield validation; Safari Web Extension SAFARI-EXT-1 record.
+- `HealSafariExtension/` — Manifest V3 static DNR redirect spike (`example.com` domain family → `blocked.html`).
+- `Heal/Info.plist`, `Heal/HealApp.swift`, `Heal/SpikeAppState.swift` — `heal://safe-place` deep-link routing into existing Safe Place presentation.
 - `Heal/WebsiteShieldService.swift` — named store `websiteFeasibility`, `shield.webDomains`.
 - `Heal/ShieldService.swift` — default store, `shield.applications`.
 - `Heal/HandoffStore.swift`, `HealShieldAction/HandoffWriter.swift` — App Group schema.
@@ -935,4 +974,4 @@ Separately, `webContent.blockedByFilter` was device-tested on 14 July 2026:
 
 **NO-GO as of 14 July 2026 / Xcode 26.6 / iOS SDK 26.5** for adding a Heal button inside the `blockedByFilter` experience. This does **not** make Family Controls as a whole a NO-GO: app shielding and picker-token website shielding remain separate validated/researched mechanisms. Blocking success without intervention is only a partial product result.
 
-Next research should isolate a Safari Web Extension redirect → Heal-controlled block page → explicit tap → Safe Place path (**Requires device spike**; not proven). A hybrid may keep `.auto` / `.specific` as Chrome/other-browser **blocking-only** fallback. Control Center remains a complementary non-blocking entry path. Do not assume extension vs `blockedByFilter` execution order without a dedicated device test.
+The Safari Web Extension isolated path is now **device-validated as SAFARI-EXT-1** (14 July 2026): static DNR `main_frame` redirect for the `example.com` domain family (apex and tested `www` subdomain) → Heal-controlled `blocked.html` → explicit tap → iOS confirmation → Heal → Safe Place (normal Safari and Private Browsing when separately enabled). A hybrid may keep `.auto` / `.specific` as Chrome/other-browser **blocking-only** fallback. Control Center remains a complementary non-blocking entry path. Do **not** assume extension vs `blockedByFilter` execution order without a dedicated device test. Production-scale domain coverage, remote rules, App Review, and Universal Links vs custom schemes remain open.

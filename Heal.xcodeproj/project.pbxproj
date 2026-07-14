@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CE336D7F3006995400D5A41B /* HealSafariExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CE336D673006995400D5A41B /* HealSafariExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CE80F11C2FFEAE78003F6FFD /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE80F11B2FFEAE78003F6FFD /* ManagedSettings.framework */; };
 		CE80F1242FFEAE78003F6FFD /* HealShieldConfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CE80F1192FFEAE78003F6FFD /* HealShieldConfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CE80F12F2FFEAEC2003F6FFD /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE80F11B2FFEAE78003F6FFD /* ManagedSettings.framework */; };
@@ -14,6 +15,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		CE336D7D3006995400D5A41B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE80F0FF2FFD67D8003F6FFD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CE336D663006995400D5A41B;
+			remoteInfo = HealSafariExtension;
+		};
 		CE80F1222FFEAE78003F6FFD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CE80F0FF2FFD67D8003F6FFD /* Project object */;
@@ -38,6 +46,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				CE80F1242FFEAE78003F6FFD /* HealShieldConfig.appex in Embed Foundation Extensions */,
+				CE336D7F3006995400D5A41B /* HealSafariExtension.appex in Embed Foundation Extensions */,
 				CE80F1372FFEAEC2003F6FFD /* HealShieldAction.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
@@ -46,6 +55,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		CE336D673006995400D5A41B /* HealSafariExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HealSafariExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE80F1072FFD67D8003F6FFD /* Heal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Heal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE80F1192FFEAE78003F6FFD /* HealShieldConfig.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HealShieldConfig.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE80F11B2FFEAE78003F6FFD /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
@@ -53,6 +63,20 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CE336D803006995400D5A41B /* Exceptions for "HealSafariExtension" folder in "HealSafariExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CE336D663006995400D5A41B /* HealSafariExtension */;
+		};
+		CE80F10A2FFD67D8003F6FFD /* Exceptions for "Heal" folder in "Heal" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CE80F1062FFD67D8003F6FFD /* Heal */;
+		};
 		CE80F1252FFEAE78003F6FFD /* Exceptions for "HealShieldConfig" folder in "HealShieldConfig" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -70,8 +94,23 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		CE336D683006995400D5A41B /* HealSafariExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CE336D803006995400D5A41B /* Exceptions for "HealSafariExtension" folder in "HealSafariExtension" target */,
+			);
+			explicitFolders = (
+				Resources/_locales,
+				Resources/images,
+			);
+			path = HealSafariExtension;
+			sourceTree = "<group>";
+		};
 		CE80F1092FFD67D8003F6FFD /* Heal */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CE80F10A2FFD67D8003F6FFD /* Exceptions for "Heal" folder in "Heal" target */,
+			);
 			path = Heal;
 			sourceTree = "<group>";
 		};
@@ -94,6 +133,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CE336D643006995400D5A41B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE80F1042FFD67D8003F6FFD /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -126,6 +172,7 @@
 				CE80F1092FFD67D8003F6FFD /* Heal */,
 				CE80F11D2FFEAE78003F6FFD /* HealShieldConfig */,
 				CE80F1302FFEAEC2003F6FFD /* HealShieldAction */,
+				CE336D683006995400D5A41B /* HealSafariExtension */,
 				CE80F11A2FFEAE78003F6FFD /* Frameworks */,
 				CE80F1082FFD67D8003F6FFD /* Products */,
 			);
@@ -137,6 +184,7 @@
 				CE80F1072FFD67D8003F6FFD /* Heal.app */,
 				CE80F1192FFEAE78003F6FFD /* HealShieldConfig.appex */,
 				CE80F12E2FFEAEC2003F6FFD /* HealShieldAction.appex */,
+				CE336D673006995400D5A41B /* HealSafariExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -152,6 +200,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		CE336D663006995400D5A41B /* HealSafariExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE336D813006995400D5A41B /* Build configuration list for PBXNativeTarget "HealSafariExtension" */;
+			buildPhases = (
+				CE336D633006995400D5A41B /* Sources */,
+				CE336D643006995400D5A41B /* Frameworks */,
+				CE336D653006995400D5A41B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CE336D683006995400D5A41B /* HealSafariExtension */,
+			);
+			name = HealSafariExtension;
+			packageProductDependencies = (
+			);
+			productName = HealSafariExtension;
+			productReference = CE336D673006995400D5A41B /* HealSafariExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		CE80F1062FFD67D8003F6FFD /* Heal */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CE80F1122FFD67DA003F6FFD /* Build configuration list for PBXNativeTarget "Heal" */;
@@ -166,6 +236,7 @@
 			dependencies = (
 				CE80F1232FFEAE78003F6FFD /* PBXTargetDependency */,
 				CE80F1362FFEAEC2003F6FFD /* PBXTargetDependency */,
+				CE336D7E3006995400D5A41B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				CE80F1092FFD67D8003F6FFD /* Heal */,
@@ -231,6 +302,9 @@
 				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
+					CE336D663006995400D5A41B = {
+						CreatedOnToolsVersion = 26.6;
+					};
 					CE80F1062FFD67D8003F6FFD = {
 						CreatedOnToolsVersion = 26.6;
 					};
@@ -259,11 +333,19 @@
 				CE80F1062FFD67D8003F6FFD /* Heal */,
 				CE80F1182FFEAE78003F6FFD /* HealShieldConfig */,
 				CE80F12D2FFEAEC2003F6FFD /* HealShieldAction */,
+				CE336D663006995400D5A41B /* HealSafariExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CE336D653006995400D5A41B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE80F1052FFD67D8003F6FFD /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -288,6 +370,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CE336D633006995400D5A41B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE80F1032FFD67D8003F6FFD /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -312,6 +401,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CE336D7E3006995400D5A41B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CE336D663006995400D5A41B /* HealSafariExtension */;
+			targetProxy = CE336D7D3006995400D5A41B /* PBXContainerItemProxy */;
+		};
 		CE80F1232FFEAE78003F6FFD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = CE80F1182FFEAE78003F6FFD /* HealShieldConfig */;
@@ -325,6 +419,74 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CE336D823006995400D5A41B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6FA7W3ZRF2;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HealSafariExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Heal Safe Place";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.itamar.Heal.HealSafariExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CE336D833006995400D5A41B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6FA7W3ZRF2;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HealSafariExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Heal Safe Place";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.itamar.Heal.HealSafariExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		CE80F1102FFD67DA003F6FFD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -458,6 +620,7 @@
 				DEVELOPMENT_TEAM = 6FA7W3ZRF2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Heal/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -493,6 +656,7 @@
 				DEVELOPMENT_TEAM = 6FA7W3ZRF2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Heal/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -635,6 +799,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CE336D813006995400D5A41B /* Build configuration list for PBXNativeTarget "HealSafariExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE336D823006995400D5A41B /* Debug */,
+				CE336D833006995400D5A41B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CE80F1022FFD67D8003F6FFD /* Build configuration list for PBXProject "Heal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

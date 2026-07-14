@@ -27,6 +27,9 @@ struct HealApp: App {
                     appState.refreshSystemState()
                     appState.evaluatePendingSafePlaceEntry()
                 }
+                .onOpenURL { url in
+                    appState.handleIncomingURL(url)
+                }
         }
     }
 }

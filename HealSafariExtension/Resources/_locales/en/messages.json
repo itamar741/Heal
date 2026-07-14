@@ -1,0 +1,10 @@
+{
+    "extension_name": {
+        "message": "Heal Safe Place",
+        "description": "The display name for the extension."
+    },
+    "extension_description": {
+        "message": "Feasibility spike: redirects example.com to a Heal-controlled block page.",
+        "description": "Description of what the extension does."
+    }
+}
