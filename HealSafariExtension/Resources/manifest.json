@@ -23,8 +23,7 @@
     ],
 
     "host_permissions": [
-        "*://example.com/*",
-        "*://*.example.com/*"
+        "*://example.com/*"
     ],
 
     "declarative_net_request": {
@@ -41,8 +40,7 @@
         {
             "resources": [ "blocked.html" ],
             "matches": [
-                "*://example.com/*",
-                "*://*.example.com/*"
+                "*://example.com/*"
             ]
         }
     ]

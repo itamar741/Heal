@@ -9,8 +9,8 @@
             }
         },
         "condition": {
-            "urlFilter": "||example.com^",
-            "resourceTypes": [ "main_frame" ]
+            "regexFilter": "^https?://example\\.com(?:/|$)",
+            "resourceTypes": ["main_frame"]
         }
     }
 ]
