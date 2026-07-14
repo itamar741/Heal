@@ -1,8 +1,8 @@
 # Heal / Safe Place — iOS Web Blocking and Intervention Research
 
-**Status:** Living research record  
-**Point in time:** 14 July 2026  
-**Toolchain audited:** Xcode 26.6, iOS SDK 26.5, deployment target 26.5  
+**Status:** Living research record
+**Point in time:** 14 July 2026
+**Toolchain audited:** Xcode 26.6, iOS SDK 26.5, deployment target 26.5
 **Purpose:** Preserve validated knowledge, evidence tiers, product decisions, and open unknowns for Heal’s website-blocking and Safe Place intervention work so future development does not depend on a single chat or agent session.
 
 > This document describes the state as of the date above. iOS behavior, Apple APIs, distribution entitlements, and regional limits may change in later releases. Any future update should record date, OS version, SDK version, and evidence type.
@@ -17,13 +17,16 @@ This record covers:
 - Real-device website-shielding observations for Safari and Chrome (research-session narrative).
 - Formal spike validation for **app** shielding (`docs/Spike-Validation-Report.md`).
 - Adult `ActivityCategoryToken` investigation (picker + `FamilyActivityData`).
-- Remaining candidates: `webContent.blockedByFilter` (`.auto` / `.specific`), Safari Web Extension, Control Center.
+- Completed device spike for `webContent.blockedByFilter` (`.auto` / `.specific`) and typed-`WebDomain.token` bridge (**AUTO-2** / **SPECIFIC-2** / **TOKEN-3**).
+- Remaining candidates for a Heal-controlled block page with a button: Safari Web Extension (**Requires device spike**), Control Center (deferred complement).
 
 Out of scope for this document’s conclusions:
 
-- Claiming that `.auto(...)` or `.specific(...)` already provide a Heal button (untested).
-- Claiming Apple has no adult-content classifier (the `.auto` filter is separate from category tokens).
+- Claiming that `.auto(...)` or `.specific(...)` provide a Heal button (device-tested: they do not).
+- Claiming Apple has no adult-content classifier (the `.auto` filter is separate from category tokens and can block).
+- Claiming Family Controls as a whole is a NO-GO (app shielding and token-based website shielding remain separate validated/researched mechanisms).
 - Treating informal browser tests as equivalent to the formal Milestone J/K validation report.
+- Claiming Chrome Incognito was separately verified for `blockedByFilter` (not recorded in this spike).
 
 ---
 
@@ -64,12 +67,26 @@ Reasons (not an implementation bug):
 - Exactly **12** system categories were returned; each reported a present token; none matched Adult / Pornography / Explicit / Sexual / Mature name terms.
 - Apple’s adult-content **filter** (`.auto(...)`) is a different API and does not expose an `ActivityCategoryToken` for `webDomainCategories`.
 
+### Real-device `blockedByFilter` spike (14 July 2026)
+
+On a physical iPhone, branch `spike/web-content-filter-behavior` (baseline `main` @ `48ef0f1`), Xcode 26.6 / iOS SDK 26.5:
+
+| Mode | Classification | Blocking | Intervention (Requirement A) |
+|---|---|---|---|
+| `.auto(...)` | **AUTO-2 — Blocking only** | Tested adult site blocked; unrelated normal site not blocked | Generic `Website Not Allowed`; **no Heal button**; no route to Heal / Safe Place |
+| `.specific(...)` | **SPECIFIC-2 — Blocking only** | Manually entered domain blocked; tested subdomain also blocked; unrelated site available | Same generic page; **no Heal button**; no route to Heal / Safe Place |
+| `WebDomain(domain:).token` | **TOKEN-3 — No public usable token** | N/A | Public optional token was `nil` on device; no typed-domain → `WebDomainToken` → custom Shield bridge |
+
+**Real-device evidence (both `.auto` and `.specific`):** Chrome showed the same generic blocking behavior. Safari Private Browsing **remained available** while each filter was active (see §10 / §11 for the documented-vs-observed discrepancy). Broader adult-classifier coverage and full hostname matching rules are **not** proven by these single-sample tests.
+
+**NO-GO as of 14 July 2026 / Xcode 26.6 / iOS SDK 26.5** for adding a Heal button inside the `blockedByFilter` / `Website Not Allowed` experience. This is **not** a NO-GO for Family Controls as a whole.
+
 ### Remaining primary options
 
-1. `webContent.blockedByFilter = .auto(...)` — Apple’s automatic adult-content filtering (**Requires device spike** for Heal UI/button).
-2. `webContent.blockedByFilter = .specific(...)` — manually typed domains via `WebDomain(domain:)` (**Requires device spike** for Heal UI/button).
-3. If filters block without a usable button/callback: Safari Web Extension with a Heal-controlled block page (**not implemented**).
-4. Control Center control to open Safe Place — complementary, **deferred** until blocking paths are exhausted.
+1. Safari Web Extension with a Heal-controlled block page and explicit “Open Safe Place” control — **next supported candidate**; **Requires device spike**; not proven; execution order vs `blockedByFilter` is unknown.
+2. Hybrid: Safari Web Extension for Safari intervention UI; keep `.auto` / `.specific` as **blocking-only** fallback for Chrome and other browsers (AUTO-2 / SPECIFIC-2).
+3. Control Center control to open Safe Place — complementary non-blocking entry, **deferred**.
+4. Picker-selected `WebDomainToken` → `shield.webDomains` — remains the only recorded Safari path with custom Heal shield + Safe Place button (does not satisfy typed-domain or automatic adult coverage alone).
 
 ---
 
@@ -379,18 +396,18 @@ Implementation (code inspection):
 
 **Real-device evidence:** top-level categories shown:
 
-1. Social  
-2. Games  
-3. Entertainment  
-4. Creativity  
-5. Education  
-6. Health & Fitness  
-7. Information & Reading  
-8. Productivity & Finance  
-9. Shopping & Food  
-10. Travel  
-11. Utilities  
-12. Other  
+1. Social
+2. Games
+3. Entertainment
+4. Creativity
+5. Education
+6. Health & Fitness
+7. Information & Reading
+8. Productivity & Finance
+9. Shopping & Food
+10. Travel
+11. Utilities
+12. Other
 
 No Adult / Pornography / Explicit / Sexual / Mature category row was observed.
 
@@ -509,22 +526,32 @@ store.webContent.blockedByFilter = .auto(
 - Up to 50 blocked domains and up to 50 exceptions for the filter APIs that accept domain sets.
 - Setting any filter policy other than `.none` **disables Safari Private Browsing** while the policy is active (`blockedByFilter` discussion).
 
-### Not documented / not proven for Heal
+### Installed SDK inspection
 
-No guarantee that `.auto`:
+`WebContentSettings` exposes only `blockedByFilter: FilterPolicy?`. No public UI customization, button configuration, action delegate, blocked-domain callback, or notification hook is present on this setting. `ManagedSettingsUI` / `ShieldActionDelegate` overloads correspond to Shield APIs, not to the generic filter page.
 
-- shows Heal’s custom shield;
-- invokes `ShieldConfigurationExtension`;
-- invokes `ShieldActionExtension`;
-- shows a button that can open Safe Place.
+### Real-device evidence (14 July 2026)
+
+Classification: **AUTO-2 — Blocking only**.
+
+- A tested adult website was blocked.
+- A clearly unrelated normal website was not blocked.
+- Broader adult-site classification coverage is **not** proven by this single tested adult site.
+- Visible UI was Apple’s generic **`Website Not Allowed`**.
+- **No Heal button** was visible.
+- No route from the blocked page to Heal or Safe Place was available.
+- Chrome showed the same generic blocking behavior (Chrome Incognito was **not** separately recorded for this spike).
+- Safari Private Browsing **remained available** while `.auto` was active.
+
+**Documented vs observed (Private Browsing):** Apple documentation states that any filter policy other than `.none` disables Safari Private Browsing. On the tested device (14 July 2026), Private Browsing remained available under `.auto`. Preserve both statements: the documented claim is not deleted; the device result is a point-in-time observation requiring cautious interpretation (OS version, region, or other system state may matter).
+
+**Proven finding for Requirement A:** blocking succeeded for the tested adult site; intervention failed (no visible actionable Heal button). This report does **not** claim Shield Configuration/Action callbacks were absent unless Console evidence was conclusively captured; the proven UI finding is no Heal button.
 
 ### Current assessment
 
-**Inference:** likely a separate web-content filter with generic restriction UI, because Apple separates `store.shield.*` from `store.webContent.blockedByFilter`.
+**NO-GO as of 14 July 2026 / Xcode 26.6 / iOS SDK 26.5** for satisfying Requirement A via `.auto` / `Website Not Allowed`.
 
-**Requires device spike** before GO / PARTIAL / NO-GO for Requirement A.
-
-Heal has **not** implemented `.auto(...)` as of this document date.
+Blocking success ≠ intervention-flow success. `.auto` remains useful only as **blocking-only** coverage (for example Chrome fallback in a hybrid architecture).
 
 ---
 
@@ -544,13 +571,23 @@ store.webContent.blockedByFilter = .specific([domain])
 - Up to 50 domains.
 - Non-`.none` `blockedByFilter` disables Safari Private Browsing while active.
 
-### Unknown (Requires device spike)
+### Real-device evidence (14 July 2026)
 
-- Heal custom shield vs generic restriction page.
-- Whether shield configuration/action extensions run.
-- Whether any button can open Heal / Safe Place.
-- Subdomain / `www` / scheme / port matching in practice.
-- Chrome and Chrome Incognito behavior.
+Classification: **SPECIFIC-2 — Blocking only**.
+
+- A manually entered domain was blocked.
+- A tested subdomain was also blocked.
+- A clearly unrelated website remained available.
+- Do **not** generalize the subdomain observation into a complete specification for all hostname, `www`, public-suffix, or IDN cases.
+- Visible UI was Apple’s generic **`Website Not Allowed`**.
+- **No Heal button** was visible.
+- No route from the blocked page to Heal or Safe Place was available.
+- Chrome showed the same generic blocking behavior (Chrome Incognito was **not** separately recorded for this spike).
+- Safari Private Browsing **remained available** while `.specific` was active.
+
+**Documented vs observed (Private Browsing):** same discrepancy as §10 — documentation says Private Browsing is disabled for non-`.none` policies; the tested device retained Private Browsing under `.specific`. Keep both; interpret cautiously.
+
+**Proven finding for Requirement A:** typed-domain blocking succeeded for the tested host/subdomain sample; intervention failed (no visible actionable Heal button).
 
 ### Manual `WebDomain` vs `WebDomainToken`
 
@@ -560,9 +597,13 @@ There is no public initializer such as:
 WebDomainToken(domain: "example.com")
 ```
 
-`WebDomainToken` is a privacy-preserving token (`Token` exposes `init(from: Decoder)` only in the public interface). `WebDomain` has an optional `token` property, but Apple does not document that a manually constructed `WebDomain` yields a usable token for `store.shield.webDomains`.
+`WebDomainToken` is a privacy-preserving token (`Token` exposes `init(from: Decoder)` only in the public interface). **Installed SDK inspection:** `WebDomain` exposes `public let token: WebDomainToken?`.
 
-Trying that conversion is a **low-probability experiment**, not an approved product path, until proven.
+**Real-device evidence (14 July 2026):** for a manually created `WebDomain(domain: ...)`, the public optional `token` was **`nil`**. Classification: **TOKEN-3 — No public usable token**. No supported typed-domain → `WebDomainToken` → `store.shield.webDomains` custom Heal Shield path was available.
+
+### Current assessment
+
+**NO-GO as of 14 July 2026 / Xcode 26.6 / iOS SDK 26.5** for satisfying Requirement A via `.specific` / `Website Not Allowed`. Typed-domain **blocking** works; Heal intervention on that page does not.
 
 **Do not conflate:**
 
@@ -587,38 +628,46 @@ Chrome opens blocked domain
 → Heal opens Safe Place
 ```
 
+### Token-based website shield (`shield.webDomains`) — prior research
+
 Observed:
 
 - Generic shield.
 - No proven control of its text or button.
 - Diagnostic attempt did not provide a reliable callback/data path.
 
-Paths considered and deprioritized:
+### `blockedByFilter` — Real-device evidence (14 July 2026)
 
-1. `NEFilterManager` / content filter  
-2. DNS Proxy  
-3. Newer URL filter APIs  
-4. Packet Tunnel / local VPN  
-5. Notification as a button substitute  
+For both `.auto` and `.specific`, Chrome showed the same generic **`Website Not Allowed`** blocking behavior as Safari, with **no Heal button** and no route into Heal / Safe Place. Chrome Incognito was **not** separately recorded for this spike.
 
-**Decision:** these are not expected to inject a button into Chrome’s generic shield. At best they may detect an event and post a notification. Chrome research is paused while the product prefers an in-block-screen action over notification-only UX.
+Paths considered and deprioritized for putting a Heal button *inside* Chrome’s block UI:
+
+1. `NEFilterManager` / content filter
+2. DNS Proxy
+3. Newer URL filter APIs
+4. Packet Tunnel / local VPN
+5. Notification as a button substitute
+
+**Decision:** these are not expected to inject a button into Chrome’s generic shield/filter page. At best they may detect an event and post a notification. For Chrome, the realistic near-term outcome remains **blocking-only** via `.auto` / `.specific` (AUTO-2 / SPECIFIC-2), while Safari intervention UI is pursued separately (Safari Web Extension candidate).
 
 ---
 
 ## 13. Safari Web Extension candidate
 
-If `.auto` / `.specific` block without a button/callback, a Safari Web Extension remains a research candidate.
+After the `blockedByFilter` spike classified **AUTO-2** / **SPECIFIC-2** / **TOKEN-3**, a Safari Web Extension is the **next supported public-API candidate** for a Heal-controlled block page with a visible button in Safari.
 
-Possible flow:
+Possible flow (**not proven**):
 
 ```text
 Safari request
 → extension matches blocked domain
 → redirect to Heal-controlled block page
 → “Open Safe Place” control
-→ Universal Link / deep link
+→ Universal Link / custom URL scheme (explicit user tap)
 → Heal / Safe Place
 ```
+
+**Installed SDK / Apple-documented support (high level):** Safari Web Extensions can use `declarativeNetRequest` / `declarativeNetRequestWithHostAccess`, including `main_frame` **redirect** to an extension-bundled page. Host permissions, Private Browsing enablement, and profile permissions apply. Native messaging and App Groups can share data with the containing app; silently launching the iOS app from background extension code is **not** assumed.
 
 **Potential strengths:** full control of block page and button; typed domains; own adult-domain list or classification service; Safari-focused.
 
@@ -627,10 +676,18 @@ Safari request
 - New extension target and platform surface (**not implemented**).
 - User must enable the extension and grant site permissions.
 - Private Browsing needs appropriate extension permission.
-- No bridge from Apple’s `.auto` classifier into the extension; Heal would need its own dataset/service.
-- Redirect stability and App Review expectations on current iOS **Require device spike / implementation testing**.
+- No bridge from Apple’s `.auto` classifier into the extension; Heal would need its own dataset/service for automatic adult coverage.
+- Opening Heal from an extension page requires an **explicit user gesture**; exact custom-scheme / Universal Link behavior **Requires device spike**.
+- Execution order when both a Safari Web Extension redirect and `blockedByFilter` are active is **unknown** — do not assume the extension replaces `Website Not Allowed` without a race/order device test.
+- Redirect stability and App Review expectations on current iOS **Require device spike**.
 
-**Status:** future candidate only — not proven architecture.
+**Status:** next isolated device spike candidate — **not proven** architecture. Do not start that branch in the same cleanup that closes `spike/web-content-filter-behavior`.
+
+Suggested future branch name (not created here):
+
+```text
+spike/safari-web-extension-block-page
+```
 
 ---
 
@@ -657,7 +714,7 @@ Branch recorded:
 spike/control-center-safe-place
 ```
 
-**Status:** no Heal Control Center implementation in the codebase as of this rewrite; deferred until `.auto` / `.specific` spikes are completed. Exact intent type (`OpenIntent` vs other App Intent patterns) should be confirmed against the installed SDK when that spike starts.
+**Status:** no Heal Control Center implementation in the codebase as of this rewrite; deferred while Safari Web Extension becomes the next intervention spike. Exact intent type (`OpenIntent` vs other App Intent patterns) should be confirmed against the installed SDK when that spike starts.
 
 App Group is already used for shield handoff; a Control Center launch may not require a new App Group solely to open Safe Place, but any shared state should reuse existing patterns if needed (**Requires implementation design**).
 
@@ -669,9 +726,10 @@ App Group is already used for shield handoff; a Control Center launch may not re
 |---|---:|---:|---|---|---|---|---|---|---|
 | `shield.webDomains` + `WebDomainToken` | No | No (picker only) | Yes (research) | Observed after clean retest | Generic shield | Yes in Safari (research) | Yes in Safari (research) | Yes in Safari (research) | **Validated (Safari research record)** |
 | `shield.webDomainCategories` + Adult token | Would have | No | In principle | Needs token | N/A | In principle | In principle | In principle | **NO-GO: no Adult token (14 Jul 2026)** |
-| `blockedByFilter = .specific(...)` | No | Yes | Expected to block | Private disabled (documented) | Unknown | Unknown | Unknown | Unknown | **Next device spike** |
-| `blockedByFilter = .auto(...)` | Yes | Optional add-on | Expected to block | Private disabled (documented) | Unknown | Unknown | Unknown | Unknown | **Next device spike** |
-| Safari Web Extension | With own list/classifier | Yes | In principle | Needs extension Private permission | No | Heal-controlled page | Page button | Via link/routing | **Fallback research** |
+| `blockedByFilter = .specific(...)` | No | Yes (device) | Blocks; generic page | Remained available (device; docs disagree) | Generic `Website Not Allowed` | No | No Heal button observed | No | **SPECIFIC-2 — Blocking only** |
+| `blockedByFilter = .auto(...)` | Yes (tested sample) | Optional add-on | Blocks; generic page | Remained available (device; docs disagree) | Generic `Website Not Allowed` | No | No Heal button observed | No | **AUTO-2 — Blocking only** |
+| Typed `WebDomain.token` → `shield.webDomains` | N/A | Attempted | N/A | N/A | N/A | N/A | N/A | N/A | **TOKEN-3 — token nil on device** |
+| Safari Web Extension | With own list/classifier | Yes | In principle | Needs extension Private permission | No | Heal-controlled page | Page button | Via link/routing | **Next candidate — Requires device spike** |
 | Network Extension / DNS Proxy | With own classifier | Yes | Broad | Broad | Maybe | Not inside Chrome shield | Notification at best | Notification→Heal possible | **Deprioritized** |
 | Control Center control | Does not block | Does not block | Anywhere | Anywhere | Anywhere | N/A | System control | Yes (in principle) | **Deferred complement** |
 | App `shield.applications` | N/A | N/A | N/A | N/A | N/A | Yes | Yes | Yes | **Validated (Spike-Validation-Report)** |
@@ -685,83 +743,85 @@ App Group is already used for shield handoff; a Control Center launch may not re
 | Adult `ActivityCategoryToken` → `webDomainCategories` | **NO-GO (14 Jul 2026)** | Picker + full `activityCategories` enumeration: 12 categories, no adult-related name |
 | Selecting `Other` as adult substitute | Rejected | Uncontrolled overblocking |
 | Promoting `ce26bb3` as product baseline | Rejected | Diagnostics only |
+| Heal button inside `blockedByFilter` / `Website Not Allowed` | **NO-GO (14 Jul 2026)** | AUTO-2 / SPECIFIC-2: blocks, but generic page with no Heal button; no public customization hook |
+| Typed `WebDomain(domain:).token` → `shield.webDomains` | **TOKEN-3 (14 Jul 2026)** | Public token was `nil` on device |
 | Chrome Network Extension / DNS / notification-first | Deferred / deprioritized | Unlikely to put a button inside Chrome’s generic shield |
-| Control Center | Deferred complement | Does not solve blocking; useful after filter spikes |
-| Safari Web Extension | Fallback research | Only if filters lack Requirement A |
+| Control Center | Deferred complement | Does not solve blocking; useful after intervention path chosen |
+| Safari Web Extension | Next candidate | **Requires device spike**; not proven |
 | Hard-coding / decoding opaque tokens | Rejected | Private/unsupported; App Review risk |
 
 ---
 
 ## 17. Open questions and required device spikes
 
-1. Does `.auto` show Heal custom shield or a generic restriction page?  
-2. Does `.auto` invoke Shield Configuration / Action extensions?  
-3. Does `.specific(WebDomain)` invoke those extensions?  
-4. Does either present a usable button?  
-5. Can either open Heal directly into Safe Place?  
-6. `.auto` behavior in Chrome and Chrome Incognito.  
-7. `.specific` behavior in Chrome and Chrome Incognito.  
-8. Matching rules for `www`, subdomains, schemes, ports under `.specific`.  
-9. Real-world coverage quality of Apple’s adult-content classifier.  
-10. False positives / false negatives of `.auto`.  
-11. Whether `WebDomain(domain:).token` is ever usable for `shield.webDomains` (low probability).  
-12. If filters lack a button: Safari Web Extension redirect feasibility and App Review path.  
-13. Production entitlement / App Review requirements for any chosen solution.  
-14. Production-region impact of `FamilyActivityData` EU limits (relevant if any future feature depends on data access).
+### Resolved by `blockedByFilter` spike (14 July 2026)
+
+1. `.auto` UI: Apple generic **`Website Not Allowed`** (not Heal custom).
+2. `.specific` UI: same generic page.
+3. Usable Heal button on either filter page: **no**.
+4. Open Heal / Safe Place from either filter page: **no**.
+5. Typed `WebDomain(domain:).token` usable for `shield.webDomains`: **no** (`nil` → TOKEN-3).
+6. Chrome under `.auto` / `.specific`: same generic blocking (Incognito not separately recorded).
+7. Safari Private Browsing under both policies on the tested device: **remained available** (conflicts with Apple documentation wording; interpret cautiously).
+8. Tested subdomain under `.specific`: also blocked (not a full matching-rules specification).
+
+### Still open / next spikes
+
+1. Safari Web Extension: `main_frame` redirect to Heal-controlled page + “Open Safe Place” button that opens Heal → Safe Place (**Requires device spike**).
+2. Opening Heal from an extension page (custom URL scheme vs Universal Link) under explicit user tap.
+3. Extension behavior in Safari Private Browsing and across Safari profiles.
+4. Execution order / race when both extension redirect and `blockedByFilter` are active (**unknown** — do not assume).
+5. Broader real-world coverage quality / false positives of Apple’s `.auto` classifier.
+6. Full hostname matching matrix for `.specific` (`www`, public suffix, IDN, ports, schemes).
+7. Chrome Incognito under `blockedByFilter` (not recorded in the completed spike).
+8. Production entitlement / App Review requirements for any chosen Safari Extension solution.
+9. Production-region impact of `FamilyActivityData` EU limits (relevant if any future feature depends on data access).
+10. Control Center Safe Place entry as a complementary non-blocking path.
 
 ---
 
 ## 18. Recommended research sequence
 
-### Suggested next branch
+### Completed branch
 
 ```text
 spike/web-content-filter-behavior
 ```
 
-Create from `main @ 9876d7f` after preserving findings from `spike/adult-category-shield`.
+Created from `main @ 48ef0f1`. Device results recorded in this document (AUTO-2 / SPECIFIC-2 / TOKEN-3). Spike implementation was temporary and is not retained as product code.
+
+### Suggested next branch
+
+```text
+spike/safari-web-extension-block-page
+```
 
 ### Spike goal
 
-On a physical device, test each state separately:
-
-```swift
-.auto([], except: [])
-```
-
-```swift
-.specific([WebDomain(domain: "example.com")])
-```
-
-```swift
-.auto([WebDomain(domain: "example.com")], except: [])
-```
-
-### For each state, record
-
-1. Site blocked: yes/no  
-2. UI: Heal custom / Apple generic / none  
-3. `ShieldConfigurationExtension` called: yes/no/unknown  
-4. `ShieldActionExtension` called: yes/no/unknown  
-5. Button present: yes/no  
-6. Button opens Heal: yes/no  
-7. Direct Safe Place routing: yes/no  
-8. Safari Private Browsing impact  
-9. Whether clearing the filter restores Private Browsing  
-10. Chrome and Chrome Incognito  
-11. Adult-site sample(s) for `.auto`, explicit test domain for `.specific`, and one unrelated site for overblocking  
-
-### Success criteria for product fitness
+On a physical device, prove a minimal Safari Web Extension path:
 
 ```text
-Broad adult block and/or typed domain
+Navigate to one tester-selected domain in Safari
+→ declarativeNetRequest redirect (main_frame)
+→ Heal-controlled extension HTML page
+→ visible “Open Safe Place” button
+→ explicit user tap opens Heal
+→ Heal routes to Safe Place
+```
+
+Keep `blockedByFilter` cleared for the primary redirect test. Optionally, in a separate step, re-enable `.specific` on the same domain only to observe which UI wins (order is **unknown** beforehand).
+
+### Success criteria for product fitness (Safari)
+
+```text
+Typed or listed domain blocked in Safari
 +
-Reliable button or callback
+Heal-controlled page with a reliable button
 +
 Safe Place open
 ```
 
-If blocking works without a button, record it as **partial** capability and evaluate Safari Web Extension and/or Control Center as complements.
+Chrome may remain **blocking-only** via `.auto` / `.specific` in a hybrid architecture.
 
 ---
 
@@ -777,6 +837,12 @@ If blocking works without a button, record it as **partial** capability and eval
 | 14 July 2026 | Next: `.auto` and `.specific` before Safari Extension | Smaller built-in API surface; UI/callback unknown |
 | 14 July 2026 | Defer Control Center | Complements blocking; does not replace it |
 | 14 July 2026 | Pause Chrome Network Extension / notification research | Unlikely to satisfy in-shield button requirement |
+| 14 July 2026 | **AUTO-2** for `.auto` | Real-device: blocks tested adult site; `Website Not Allowed`; no Heal button |
+| 14 July 2026 | **SPECIFIC-2** for `.specific` | Real-device: blocks typed domain + tested subdomain; same generic page; no Heal button |
+| 14 July 2026 | **TOKEN-3** for typed `WebDomain.token` | Real-device: public token was `nil` |
+| 14 July 2026 | NO-GO Heal button inside `blockedByFilter` | Installed SDK + real-device; not a Family Controls whole-product NO-GO |
+| 14 July 2026 | Private Browsing remained available under both filters | Point-in-time device result; conflicts with Apple docs wording — interpret cautiously |
+| 14 July 2026 | Next: Safari Web Extension block-page spike | Only remaining supported candidate for Heal-controlled Safari intervention UI |
 
 ---
 
@@ -784,35 +850,35 @@ If blocking works without a button, record it as **partial** capability and eval
 
 ### Project artifacts
 
-- `docs/Spike-Validation-Report.md` — formal app-shield validation (web domains not tested).  
-- `Heal/WebsiteShieldService.swift` — named store `websiteFeasibility`, `shield.webDomains`.  
-- `Heal/ShieldService.swift` — default store, `shield.applications`.  
-- `Heal/HandoffStore.swift`, `HealShieldAction/HandoffWriter.swift` — App Group schema.  
-- `HealShieldConfig/ShieldConfigurationExtension.swift`, `HealShieldAction/ShieldActionExtension.swift`.  
+- `docs/Spike-Validation-Report.md` — formal app-shield validation (web domains not tested).
+- `Heal/WebsiteShieldService.swift` — named store `websiteFeasibility`, `shield.webDomains`.
+- `Heal/ShieldService.swift` — default store, `shield.applications`.
+- `Heal/HandoffStore.swift`, `HealShieldAction/HandoffWriter.swift` — App Group schema.
+- `HealShieldConfig/ShieldConfigurationExtension.swift`, `HealShieldAction/ShieldActionExtension.swift`.
 - Adult-category spike sources (may be uncommitted): `AdultCategoryShieldService.swift`, `AdultCategoryShieldView.swift`, `FamilyActivityCategoryTaxonomyProbe.swift`.
 
 ### Git
 
-- `9876d7f` — website Stage 1 baseline.  
-- `ce26bb3` — website shield callback diagnostics.  
+- `9876d7f` — website Stage 1 baseline.
+- `ce26bb3` — website shield callback diagnostics.
 - `backup/private-browser-shield-callbacks-before-reset` → `ce26bb3`.
 
 ### Installed SDK (Xcode 26.6 / iOS SDK 26.5)
 
-- `ManagedSettings` Swift interface — `ShieldSettings`, `WebContentSettings.FilterPolicy`, `WebDomain`, `Token`.  
+- `ManagedSettings` Swift interface — `ShieldSettings`, `WebContentSettings.FilterPolicy`, `WebDomain`, `Token`.
 - `FamilyControls` Swift interface — `FamilyActivityPicker`, `FamilyActivitySelection`, `FamilyActivityData`, `AuthorizationStatus.approvedWithDataAccess`.
 
 ### Official Apple documentation (titles)
 
-- FamilyActivityPicker  
-- FamilyActivityData / activityCategories  
-- AuthorizationStatus.approvedWithDataAccess  
-- ShieldSettings (`webDomains`, `webDomainCategories`)  
-- WebContentSettings / FilterPolicy / `blockedByFilter` / `.auto` / `.specific`  
-- WebDomain.init(domain:)  
-- WebDomainToken  
-- ShieldActionDelegate handle methods  
-- WidgetKit: Creating controls to perform actions across the system  
+- FamilyActivityPicker
+- FamilyActivityData / activityCategories
+- AuthorizationStatus.approvedWithDataAccess
+- ShieldSettings (`webDomains`, `webDomainCategories`)
+- WebContentSettings / FilterPolicy / `blockedByFilter` / `.auto` / `.specific`
+- WebDomain.init(domain:)
+- WebDomainToken
+- ShieldActionDelegate handle methods
+- WidgetKit: Creating controls to perform actions across the system
 - Entitlement: Family Controls App and Website Usage (`com.apple.developer.family-controls.app-and-website-usage`)
 
 ---
@@ -822,10 +888,10 @@ If blocking works without a button, record it as **partial** capability and eval
 ```markdown
 ### [YYYY-MM-DD] Test name
 
-**Branch / Commit:**  
-**Xcode / SDK / iOS:**  
-**Device and browser:**  
-**Mechanism tested:**  
+**Branch / Commit:**
+**Xcode / SDK / iOS:**
+**Device and browser:**
+**Mechanism tested:**
 
 **Code changes:**
 - ...
@@ -859,6 +925,14 @@ For **website** intervention with a custom Heal shield and Safe Place button, th
 
 Separately, the **app** shield path is formally validated in `docs/Spike-Validation-Report.md`.
 
-As of Xcode 26.6 and iOS SDK 26.5 on the tested device, Family Controls does **not** expose a public Adult/Pornography `ActivityCategoryToken` (picker inspection + full `FamilyActivityData.activityCategories` enumeration of 12 categories). That path is **NO-GO** for category-token adult website shielding. Apple’s `.auto(...)` adult-content filter remains a distinct API and is **untested** for Heal’s button requirement.
+As of Xcode 26.6 and iOS SDK 26.5 on the tested device, Family Controls does **not** expose a public Adult/Pornography `ActivityCategoryToken` (picker inspection + full `FamilyActivityData.activityCategories` enumeration of 12 categories). That path is **NO-GO** for category-token adult website shielding.
 
-Next research must decide whether `.auto(...)` and/or `.specific(...)` provide not only blocking but also a button or callback into Safe Place. If not, the most plausible Safari-focused fallback is a Safari Web Extension with a Heal-controlled block page, while Control Center remains a complementary non-blocking entry path.
+Separately, `webContent.blockedByFilter` was device-tested on 14 July 2026:
+
+- **AUTO-2:** `.auto` can block a tested adult site (coverage not fully proven) and shows generic **`Website Not Allowed`** with **no Heal button**.
+- **SPECIFIC-2:** `.specific` can block a manually entered domain (and a tested subdomain) with the same generic page and **no Heal button**.
+- **TOKEN-3:** typed `WebDomain(domain:).token` was `nil`; no public bridge into custom `shield.webDomains`.
+
+**NO-GO as of 14 July 2026 / Xcode 26.6 / iOS SDK 26.5** for adding a Heal button inside the `blockedByFilter` experience. This does **not** make Family Controls as a whole a NO-GO: app shielding and picker-token website shielding remain separate validated/researched mechanisms. Blocking success without intervention is only a partial product result.
+
+Next research should isolate a Safari Web Extension redirect → Heal-controlled block page → explicit tap → Safe Place path (**Requires device spike**; not proven). A hybrid may keep `.auto` / `.specific` as Chrome/other-browser **blocking-only** fallback. Control Center remains a complementary non-blocking entry path. Do not assume extension vs `blockedByFilter` execution order without a dedicated device test.
