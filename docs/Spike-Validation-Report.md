@@ -218,7 +218,6 @@ Managed Settings website filters (`.auto` / `.specific` / website shields) were 
 
 - Production-scale adult-domain coverage / remote rule updates
 - App Store review and onboarding conversion
-- Apple classifier-selected domain coexistence with Managed Settings `.auto` (Stage 2B)
 - Universal Links vs custom-scheme production security choice
 
 ---
@@ -290,6 +289,53 @@ Stage 2A used `.auto([WebDomain(domain: "example.com")], except: [])` — an **e
 
 ---
 
+## Safari + ManagedSettings `.auto()` classifier-only coexistence spike Stage 2B (15 July 2026)
+
+| Field | Value |
+|-------|-------|
+| Branch | `spike/safari-managedsettings-coexistence` |
+| Baseline | `main` @ `53b9ef0` |
+| Feature | Safari Web Extension + named-store `blockedByFilter = .auto()` (classifier-only) |
+| Named store | `coexistenceAuto` |
+| Xcode / SDK | 26.6 / iOS SDK 26.5 |
+| Device | Physical iPhone |
+| Classification | **COEXIST-AUTO-CLASSIFIER-1 — Safari custom intervention + Apple generic fallback** |
+
+### Prerequisite: extension-only diagnostic
+
+Before coexistence testing, with Managed Settings Auto cleared:
+
+| Case | Result |
+|------|--------|
+| Normal Safari → classifier-selected test domain | Heal-controlled extension page |
+| Private Safari → same domain | Heal-controlled extension page |
+| Chrome → same domain | Normal site (Auto cleared) |
+| Diagnostic marker on `example.com` | Confirmed newest extension bundle installed |
+
+Temporary Safari domain rule and diagnostic marker were used for device testing only and **removed before commit**.
+
+### Coexistence test cases (classifier-only `.auto()` active)
+
+| Case | Result |
+|------|--------|
+| Normal Safari → classifier-selected test domain | Heal-controlled extension page; Open Safe Place → Heal → Safe Place |
+| Safari Private Browsing → same domain | Heal-controlled extension page; same Safe Place path |
+| Chrome → same domain | Apple generic `Website Not Allowed`; no Heal button |
+| Unrelated websites | Unaffected in Safari and Chrome |
+
+Apple’s adult-content classifier independently blocked the test domain under `.auto()`. The Safari Web Extension also covered that domain during the device test (temporary local rule; not committed).
+
+### Architecture conclusion
+
+- **Safari** can provide Heal’s custom block page and Safe Place button when Heal’s Safari Web Extension rules cover the domain.
+- **Managed Settings `.auto()`** can provide Apple’s generic restriction page in Chrome and other affected browsers.
+- For Safari to show Heal’s page, **Heal’s Safari domain rules must also cover the domain** — Apple’s classifier data is not exposed to the Safari extension.
+- Heal still needs its **own Safari domain coverage** separate from Apple’s classifier.
+
+Production-scale domain-list architecture is **not** claimed solved.
+
+---
+
 ## Final Feasibility Conclusion
 
 **GO with constraints**
@@ -312,6 +358,13 @@ Stage 2A used `.auto([WebDomain(domain: "example.com")], except: [])` — an **e
 - Safari Web Extension isolated intervention path (**SAFARI-EXT-1**, 14 July 2026)
 - Safari Web Extension + Managed Settings `.specific` coexistence (**COEXIST-SPECIFIC-1**, 15 July 2026)
 - Safari Web Extension + Managed Settings `.auto` coexistence with explicitly supplied domain (**COEXIST-AUTO-1**, 15 July 2026)
+- Safari Web Extension + Managed Settings `.auto()` classifier-only coexistence (**COEXIST-AUTO-CLASSIFIER-1**, 15 July 2026)
+
+### Architecture conclusion (coexistence spike)
+
+- Safari: Heal-controlled block page and Safe Place button when the extension covers the domain.
+- Chrome and other affected browsers: Apple generic Managed Settings restriction via `.auto()`.
+- Heal must maintain its own Safari domain coverage because Apple’s classifier list is not exposed to the extension.
 
 ### Not proven
 
@@ -324,8 +377,7 @@ Stage 2A used `.auto([WebDomain(domain: "example.com")], except: [])` — an **e
 - Long-term production persistence guarantees
 - Dedicated stale-marker device test older than five minutes
 - Complete console verification of every outcome button during Milestone K
-- Production-scale Safari extension domain coverage
-- Apple classifier-selected domain coexistence with Safari Web Extension (Stage 2B)
+- Production-scale Safari extension domain list / remote rule updates
 - Automatic adult-category blocking at production scale
 
 ## Evidence and Remaining Uncertainty
