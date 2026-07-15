@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "domains": [
+    {
+      "domain": "example.com",
+      "includeSubdomains": true,
+      "purpose": "test-fixture"
+    }
+  ]
+}

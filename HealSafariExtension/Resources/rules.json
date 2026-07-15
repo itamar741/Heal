@@ -10,7 +10,9 @@
         },
         "condition": {
             "urlFilter": "||example.com^",
-            "resourceTypes": [ "main_frame" ]
+            "resourceTypes": [
+                "main_frame"
+            ]
         }
     }
 ]
