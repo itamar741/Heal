@@ -4,6 +4,7 @@
 //
 //  Stage 1 website feasibility: select one WebDomainToken, apply named-store shield,
 //  and validate custom shield → handoff → Safe Place plumbing in Safari.
+//  Temporary coexistence controls also live here (specific + auto Stage 2A).
 //  Not final product UI. No adult-content classification in this stage.
 //
 
@@ -19,6 +20,8 @@ struct WebsiteFeasibilityView: View {
     @State private var shieldStatusMessage: String?
     @State private var isCoexistenceFilterActive = false
     @State private var coexistenceStatusMessage: String?
+    @State private var isAutoCoexistenceFilterActive = false
+    @State private var autoCoexistenceStatusMessage: String?
 
     var body: some View {
         ScrollView {
@@ -100,6 +103,30 @@ struct WebsiteFeasibilityView: View {
                 Divider()
 
                 VStack(alignment: .leading, spacing: 8) {
+                    Text("Coexistence store summary (temporary)")
+                        .font(.headline)
+                    Text(
+                        "Specific (\(CoexistenceSpecificFilterService.storeNameLabel)): "
+                            + (isCoexistenceFilterActive ? "active" : "cleared")
+                    )
+                    .font(.subheadline.weight(.semibold))
+                    Text(
+                        "Auto (\(CoexistenceAutoFilterService.storeNameLabel)): "
+                            + (isAutoCoexistenceFilterActive ? "active" : "cleared")
+                    )
+                    .font(.subheadline.weight(.semibold))
+                }
+
+                Text(
+                    "Enabling one coexistence test clears the other dedicated store. "
+                        + "Neither touches websiteFeasibility or the default app-shield store."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Specific coexistence test (temporary)")
                         .font(.headline)
                     Text(
@@ -122,7 +149,7 @@ struct WebsiteFeasibilityView: View {
 
                 Text(
                     "Applies blockedByFilter = .specific for example.com only. "
-                        + "Safari Web Extension rules stay unchanged. Does not use .auto. "
+                        + "Safari Web Extension rules stay unchanged. "
                         + "Clear website-token shields before this test. "
                         + "After clear, Safari may still redirect via the extension; verify clear in Chrome "
                         + "or temporarily disable the Safari extension."
@@ -149,6 +176,56 @@ struct WebsiteFeasibilityView: View {
                 Divider()
 
                 VStack(alignment: .leading, spacing: 8) {
+                    Text("Auto coexistence test Stage 2A (temporary)")
+                        .font(.headline)
+                    Text(
+                        isAutoCoexistenceFilterActive
+                            ? "Auto coexistence test active"
+                            : "Auto coexistence test cleared"
+                    )
+                    .font(.title3.weight(.semibold))
+                }
+
+                if let autoCoexistenceStatusMessage {
+                    Text(autoCoexistenceStatusMessage)
+                        .font(.footnote)
+                        .foregroundStyle(isAutoCoexistenceFilterActive ? .green : .secondary)
+                }
+
+                Text("Named store: \(CoexistenceAutoFilterService.storeNameLabel)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text(
+                    "Stage 2A applies blockedByFilter = .auto with an explicitly supplied harmless domain "
+                        + "(example.com). This does not prove that Apple’s adult-content classifier selected it. "
+                        + "Safari Web Extension rules stay unchanged. "
+                        + "Clear website-token shields before this test. "
+                        + "After clear, Safari may still redirect via the extension; verify clear in Chrome "
+                        + "or temporarily disable the Safari extension."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                Button {
+                    enableAutoCoexistenceFilter()
+                } label: {
+                    Text("Enable Auto Coexistence Test")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    clearAutoCoexistenceFilter()
+                } label: {
+                    Text("Clear Auto Coexistence Test")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Safari test")
                         .font(.headline)
                     Text(
@@ -160,8 +237,8 @@ struct WebsiteFeasibilityView: View {
                 }
 
                 Text(
-                    "Apple’s automatic adult-content filter (blockedByFilter .auto) is not used here. "
-                        + "The temporary specific coexistence control above is the only blockedByFilter path in this spike."
+                    "Temporary coexistence controls above use dedicated named stores only. "
+                        + "Apple classifier-selected domain coexistence remains unproven (Stage 2B)."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -178,6 +255,7 @@ struct WebsiteFeasibilityView: View {
         .onAppear {
             syncWebsiteShieldStatus()
             syncCoexistenceFilterStatus()
+            syncAutoCoexistenceFilterStatus()
         }
     }
 
@@ -260,10 +338,18 @@ struct WebsiteFeasibilityView: View {
     }
 
     private func enableCoexistenceFilter() {
+        let clearedAuto = CoexistenceAutoFilterService.shared.isActive
+        CoexistenceAutoFilterService.shared.clear()
         CoexistenceSpecificFilterService.shared.enable()
         syncCoexistenceFilterStatus()
+        syncAutoCoexistenceFilterStatus()
         if isCoexistenceFilterActive {
-            coexistenceStatusMessage = "Specific coexistence filter applied for example.com."
+            coexistenceStatusMessage = clearedAuto
+                ? "Specific coexistence filter applied for example.com. Cleared coexistenceAuto first."
+                : "Specific coexistence filter applied for example.com."
+            autoCoexistenceStatusMessage = clearedAuto
+                ? "Auto coexistence filter cleared (.none) for mutual exclusion."
+                : autoCoexistenceStatusMessage
         } else {
             coexistenceStatusMessage = "Could not verify specific coexistence filter was applied."
         }
@@ -283,6 +369,40 @@ struct WebsiteFeasibilityView: View {
 
     private func syncCoexistenceFilterStatus() {
         isCoexistenceFilterActive = CoexistenceSpecificFilterService.shared.isActive
+    }
+
+    private func enableAutoCoexistenceFilter() {
+        let clearedSpecific = CoexistenceSpecificFilterService.shared.isActive
+        CoexistenceSpecificFilterService.shared.clear()
+        CoexistenceAutoFilterService.shared.enable()
+        syncCoexistenceFilterStatus()
+        syncAutoCoexistenceFilterStatus()
+        if isAutoCoexistenceFilterActive {
+            autoCoexistenceStatusMessage = clearedSpecific
+                ? "Auto coexistence filter applied (.auto with explicit example.com). Cleared coexistenceSpecific first."
+                : "Auto coexistence filter applied (.auto with explicit example.com)."
+            coexistenceStatusMessage = clearedSpecific
+                ? "Specific coexistence filter cleared (.none) for mutual exclusion."
+                : coexistenceStatusMessage
+        } else {
+            autoCoexistenceStatusMessage = "Could not verify auto coexistence filter was applied."
+        }
+    }
+
+    private func clearAutoCoexistenceFilter() {
+        CoexistenceAutoFilterService.shared.clear()
+        syncAutoCoexistenceFilterStatus()
+        if !isAutoCoexistenceFilterActive {
+            autoCoexistenceStatusMessage =
+                "Auto coexistence filter cleared (.none). "
+                + "Safari may still redirect via the extension until it is disabled."
+        } else {
+            autoCoexistenceStatusMessage = "Could not verify auto coexistence filter was cleared."
+        }
+    }
+
+    private func syncAutoCoexistenceFilterStatus() {
+        isAutoCoexistenceFilterActive = CoexistenceAutoFilterService.shared.isActive
     }
 }
 
