@@ -2,9 +2,10 @@
 //  CoexistenceAutoFilterService.swift
 //  Heal
 //
-//  Temporary Stage 2A spike: apply ManagedSettings webContent.blockedByFilter = .auto
-//  with an explicitly supplied example.com domain on a dedicated named store,
-//  alongside the Safari Web Extension. Does not prove Apple classifier selection.
+//  Temporary spike: ManagedSettings webContent.blockedByFilter = .auto on a dedicated
+//  named store alongside the Safari Web Extension.
+//  Stage 2A: .auto with explicitly supplied example.com (does not prove classifier selection).
+//  Stage 2B: .auto() classifier-only (empty additional domains).
 //  Does not touch website-token shields, app shields, or the coexistenceSpecific store
 //  except via caller-driven mutual exclusion.
 //
@@ -14,6 +15,12 @@ import ManagedSettings
 
 @MainActor
 final class CoexistenceAutoFilterService {
+    enum Mode: Equatable {
+        case cleared
+        case explicitDomain
+        case classifierOnly
+    }
+
     static let shared = CoexistenceAutoFilterService()
 
     static let storeName = ManagedSettingsStore.Name("coexistenceAuto")
@@ -25,26 +32,54 @@ final class CoexistenceAutoFilterService {
 
     private init() {}
 
-    func enable() {
+    /// Stage 2A: explicit harmless domain inside `.auto` (not classifier selection proof).
+    func enableExplicitDomain() {
         store.webContent.blockedByFilter = .auto(
             [testWebDomain],
             except: []
         )
     }
 
+    /// Stage 2B: classifier-only `.auto()` with no additionally blocked domains.
+    func enableClassifierOnly() {
+        store.webContent.blockedByFilter = .auto()
+    }
+
     func clear() {
         store.webContent.blockedByFilter = WebContentSettings.FilterPolicy.none
     }
 
-    var isActive: Bool {
+    var mode: Mode {
         guard let policy = store.webContent.blockedByFilter else {
-            return false
+            return .cleared
         }
 
-        if case .auto(let domains, _) = policy {
-            return domains.contains(testWebDomain)
+        switch policy {
+        case .auto(let domains, _):
+            if domains.contains(testWebDomain) {
+                return .explicitDomain
+            }
+            if domains.isEmpty {
+                return .classifierOnly
+            }
+            // Unexpected additional domains on this store — treat as inactive for UI.
+            return .cleared
+        case .none:
+            return .cleared
+        default:
+            return .cleared
         }
+    }
 
-        return false
+    var isActive: Bool {
+        mode != .cleared
+    }
+
+    var isExplicitDomainActive: Bool {
+        mode == .explicitDomain
+    }
+
+    var isClassifierOnlyActive: Bool {
+        mode == .classifierOnly
     }
 }
