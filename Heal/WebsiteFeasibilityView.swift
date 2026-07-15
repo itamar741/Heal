@@ -17,6 +17,8 @@ struct WebsiteFeasibilityView: View {
     @State private var hasValidSelection = false
     @State private var isWebsiteShieldApplied = false
     @State private var shieldStatusMessage: String?
+    @State private var systemFilterState: SystemWebFilteringService.FilterState = .cleared
+    @State private var systemFilterMessage: String?
 
     var body: some View {
         ScrollView {
@@ -108,12 +110,37 @@ struct WebsiteFeasibilityView: View {
                     .foregroundStyle(.secondary)
                 }
 
-                Text(
-                    "Apple’s automatic adult-content filter (blockedByFilter) is a separate mechanism "
-                    + "and is not implemented here. Whether it would invoke Heal’s extensions remains unproven."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("System Website Filtering")
+                        .font(.headline)
+                    Text(systemFilterStateLabel)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(systemFilterStateColor)
+                }
+
+                if let systemFilterMessage {
+                    Text(systemFilterMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    enableSystemWebsiteFiltering()
+                } label: {
+                    Text("Enable System Website Filtering")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    disableSystemWebsiteFiltering()
+                } label: {
+                    Text("Disable System Website Filtering")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
             }
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -126,6 +153,29 @@ struct WebsiteFeasibilityView: View {
         )
         .onAppear {
             syncWebsiteShieldStatus()
+            syncSystemFilterStatus()
+        }
+    }
+
+    private var systemFilterStateLabel: String {
+        switch systemFilterState {
+        case .enabled:
+            return "Current state: enabled"
+        case .cleared:
+            return "Current state: cleared"
+        case .error:
+            return "Current state: error"
+        }
+    }
+
+    private var systemFilterStateColor: Color {
+        switch systemFilterState {
+        case .enabled:
+            return .green
+        case .cleared:
+            return .secondary
+        case .error:
+            return .red
         }
     }
 
@@ -204,6 +254,35 @@ struct WebsiteFeasibilityView: View {
         } catch {
             isWebsiteShieldApplied = false
             shieldStatusMessage = "Could not read website shield status: \(error.localizedDescription)"
+        }
+    }
+
+    private func enableSystemWebsiteFiltering() {
+        do {
+            try SystemWebFilteringService.shared.enableSystemWebsiteFiltering()
+            syncSystemFilterStatus()
+            systemFilterMessage = "System website filtering enabled."
+        } catch {
+            syncSystemFilterStatus()
+            systemFilterMessage = "Could not enable system website filtering: \(error.localizedDescription)"
+        }
+    }
+
+    private func disableSystemWebsiteFiltering() {
+        do {
+            try SystemWebFilteringService.shared.disableSystemWebsiteFiltering()
+            syncSystemFilterStatus()
+            systemFilterMessage = "System website filtering disabled."
+        } catch {
+            syncSystemFilterStatus()
+            systemFilterMessage = "Could not disable system website filtering: \(error.localizedDescription)"
+        }
+    }
+
+    private func syncSystemFilterStatus() {
+        systemFilterState = SystemWebFilteringService.shared.currentState
+        if case .error(let message) = systemFilterState {
+            systemFilterMessage = message
         }
     }
 }
