@@ -218,9 +218,40 @@ Managed Settings website filters (`.auto` / `.specific` / website shields) were 
 
 - Production-scale adult-domain coverage / remote rule updates
 - App Store review and onboarding conversion
-- Coexistence / ordering with Managed Settings website filters
-- Chrome / non-Safari browsers
+- `.auto(...)` coexistence with Managed Settings website filters (Stage 2)
 - Universal Links vs custom-scheme production security choice
+
+---
+
+## Safari + ManagedSettings `.specific` coexistence spike (15 July 2026)
+
+| Field | Value |
+|-------|-------|
+| Branch | `spike/safari-managedsettings-coexistence` |
+| Baseline | `main` @ `53b9ef0` |
+| Feature | Safari Web Extension + named-store `blockedByFilter = .specific([WebDomain(domain: "example.com")])` |
+| Xcode / SDK | 26.6 / iOS SDK 26.5 |
+| Device | Physical iPhone |
+| Classification | **COEXIST-SPECIFIC-1 — Safari custom intervention + Apple generic fallback** |
+
+### Physical-device test cases
+
+| Case | Result |
+|------|--------|
+| Normal Safari → `https://example.com` (both mechanisms active) | Heal-controlled extension page (Safari extension won execution); not Apple `Website Not Allowed` |
+| Normal Safari → Open Safe Place | iOS confirmation → Heal opened into Safe Place |
+| Safari Private Browsing → `https://example.com` | Heal-controlled extension page; Open Safe Place → Heal → Safe Place |
+| Chrome → `https://example.com` | Apple generic `Website Not Allowed`; no Heal button |
+| Unrelated websites | Unaffected in Safari and Chrome |
+| Clear dedicated `.specific` store | Chrome access to `example.com` restored |
+| Disable Safari extension (after clear or separately) | Safari access to `example.com` restored |
+| `.auto(...)` coexistence | Not tested (Stage 2 pending) |
+
+Validated scope: `example.com` only; both Safari extension rules and Managed Settings `.specific` filter active on dedicated store `coexistenceSpecific`. Automatic adult-category blocking is **not** claimed solved.
+
+**Proven:** Hybrid architecture works on tested device — Safari gets Heal intervention UI via extension; Chrome gets Apple generic blocking via `.specific`.
+
+**Still unproven:** `.auto(...)` coexistence; production-scale adult coverage; behavior on other OS versions and browsers.
 
 ---
 
@@ -244,6 +275,7 @@ Managed Settings website filters (`.auto` / `.specific` / website shields) were 
 - Truthful shield status synchronization from `ManagedSettingsStore`
 - Clear/reapply retest loop
 - Safari Web Extension isolated intervention path (**SAFARI-EXT-1**, 14 July 2026)
+- Safari Web Extension + Managed Settings `.specific` coexistence (**COEXIST-SPECIFIC-1**, 15 July 2026)
 
 ### Not proven
 
@@ -256,7 +288,9 @@ Managed Settings website filters (`.auto` / `.specific` / website shields) were 
 - Long-term production persistence guarantees
 - Dedicated stale-marker device test older than five minutes
 - Complete console verification of every outcome button during Milestone K
-- Production-scale Safari extension domain coverage and Managed Settings coexistence
+- Production-scale Safari extension domain coverage
+- `.auto(...)` coexistence with Safari Web Extension (Stage 2)
+- Automatic adult-category blocking at production scale
 
 ## Evidence and Remaining Uncertainty
 

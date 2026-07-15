@@ -1,7 +1,7 @@
 # Heal / Safe Place — iOS Web Blocking and Intervention Research
 
 **Status:** Living research record
-**Point in time:** 14 July 2026
+**Point in time:** 15 July 2026
 **Toolchain audited:** Xcode 26.6, iOS SDK 26.5, deployment target 26.5
 **Purpose:** Preserve validated knowledge, evidence tiers, product decisions, and open unknowns for Heal’s website-blocking and Safe Place intervention work so future development does not depend on a single chat or agent session.
 
@@ -19,6 +19,7 @@ This record covers:
 - Adult `ActivityCategoryToken` investigation (picker + `FamilyActivityData`).
 - Completed device spike for `webContent.blockedByFilter` (`.auto` / `.specific`) and typed-`WebDomain.token` bridge (**AUTO-2** / **SPECIFIC-2** / **TOKEN-3**).
 - Safari Web Extension block-page path: device-validated as **SAFARI-EXT-1** (14 July 2026). Control Center remains a deferred complement.
+- Safari Web Extension + Managed Settings `.specific(...)` coexistence: device-validated as **COEXIST-SPECIFIC-1** (15 July 2026). `.auto(...)` coexistence remains unproven.
 
 Out of scope for this document’s conclusions:
 
@@ -83,8 +84,8 @@ On a physical iPhone, branch `spike/web-content-filter-behavior` (baseline `main
 
 ### Remaining primary options
 
-1. Safari Web Extension with a Heal-controlled block page and explicit “Open Safe Place” control — **SAFARI-EXT-1 (14 July 2026)** for the isolated `example.com` domain-family spike; production-scale coverage and coexistence with Managed Settings filters remain unproven.
-2. Hybrid: Safari Web Extension for Safari intervention UI; keep `.auto` / `.specific` as **blocking-only** fallback for Chrome and other browsers (AUTO-2 / SPECIFIC-2). Execution order when both are active remains **unknown**.
+1. Safari Web Extension with a Heal-controlled block page and explicit “Open Safe Place” control — **SAFARI-EXT-1 (14 July 2026)** for the isolated `example.com` domain-family spike.
+2. Hybrid: Safari Web Extension for Safari intervention UI; `.specific(...)` as **blocking-only** fallback for Chrome and other browsers — **COEXIST-SPECIFIC-1 (15 July 2026)** for `example.com` on the tested device (Safari extension won execution in normal and Private Safari; Managed Settings `.specific` showed Apple generic page in Chrome). `.auto(...)` coexistence and production-scale adult coverage remain **unproven**.
 3. Control Center control to open Safe Place — complementary non-blocking entry, **deferred**.
 4. Picker-selected `WebDomainToken` → `shield.webDomains` — remains a recorded Safari path with custom Heal shield + Safe Place button (does not satisfy typed-domain or automatic adult coverage alone).
 
@@ -739,13 +740,82 @@ The required iOS confirmation before opening Heal is an expected system-controll
 - App Store review and distribution behavior.
 - Onboarding and permission-conversion rates.
 - Reliability across other iOS versions.
-- Coexistence and execution ordering with Managed Settings website filters.
-- Chrome or other non-Safari browsers.
 - Production security choice between custom URL schemes and Universal Links (custom schemes are sufficient for this spike but are not strong ownership/authentication — another app could theoretically register `heal://`).
 
 **Installed SDK / Apple-documented support (high level):** Safari Web Extensions can use `declarativeNetRequest` / `declarativeNetRequestWithHostAccess`, including `main_frame` **redirect** to an extension-bundled page. Host permissions, Private Browsing enablement, and profile permissions apply. Native messaging and App Groups can share data with the containing app; silently launching the iOS app from background extension code is **not** assumed and was **not** used.
 
 **Status:** isolated feasibility path **device-validated as SAFARI-EXT-1** on 14 July 2026. Distinct from Apple’s Managed Settings `Website Not Allowed` page (AUTO-2 / SPECIFIC-2).
+
+### 13.2 Coexistence with Managed Settings `.specific(...)` — 15 July 2026 (**COEXIST-SPECIFIC-1**)
+
+**Test environment**
+
+| Field | Value |
+|---|---|
+| Branch | `spike/safari-managedsettings-coexistence` |
+| Baseline | `main` @ `53b9ef0` |
+| Xcode | 26.6 |
+| iOS SDK | 26.5 |
+| Device | Physical iPhone |
+| Date | 15 July 2026 |
+| Safari Web Extension | Enabled (normal + Private Browsing separately) |
+| Managed Settings | Named store `coexistenceSpecific`; `webContent.blockedByFilter = .specific([WebDomain(domain: "example.com")])` |
+| Not tested | `.auto(...)`, website-token shields, adult-domain lists |
+
+**Architecture tested**
+
+```text
+example.com
+→ Safari (normal + Private): Safari Web Extension DNR redirect wins
+  → Heal-controlled blocked.html → Open Safe Place → iOS confirm → Heal → Safe Place
+→ Chrome: Managed Settings .specific filter wins
+  → Apple generic Website Not Allowed (no Heal button)
+```
+
+Both mechanisms were active simultaneously on the dedicated named store plus the unchanged extension rules.
+
+**Classification: COEXIST-SPECIFIC-1 — Safari custom intervention + Apple generic fallback**
+
+**Normal Safari**
+
+- `https://example.com` displayed the Heal-controlled extension page (not Apple `Website Not Allowed`).
+- `Open Safe Place` worked.
+- After the iOS confirmation, Heal opened into Safe Place.
+
+**Safari Private Browsing**
+
+- Heal-controlled extension page appeared.
+- `Open Safe Place` worked.
+- Heal opened into Safe Place.
+
+**Chrome**
+
+- Apple generic `Website Not Allowed` page appeared.
+- No Heal button appeared.
+
+**Isolation checks**
+
+- Unrelated sites were unaffected in Safari and Chrome.
+- Clearing the dedicated `.specific` store (`blockedByFilter = .none` on `coexistenceSpecific`) restored Chrome access to `example.com`.
+- After disabling the Safari extension, Safari access to `example.com` was also restored.
+- No unexpected behavior observed.
+
+**Proven**
+
+- Safari Web Extension won execution over Managed Settings `.specific(...)` in normal Safari and Private Browsing on the tested device.
+- Managed Settings `.specific(...)` blocked Chrome with Apple’s generic page (blocking-only; no Heal button).
+- Unrelated domains remained unaffected.
+- Clearing each mechanism independently restored access for that browser path.
+
+**Still unproven**
+
+- `.auto(...)` coexistence with the Safari Web Extension (Stage 2).
+- Automatic adult-category blocking at production scale (`.auto` classifier coverage, false positives, regional behavior).
+- Production-scale domain coverage and remote rule updates.
+- Behavior across other iOS versions, browsers, and Safari profiles.
+- Full hostname matching matrix under coexistence.
+
+**Status:** hybrid `.specific` + Safari Web Extension **device-validated as COEXIST-SPECIFIC-1** on 15 July 2026. This does **not** solve automatic adult-category blocking; `.auto(...)` coexistence remains a separate required spike.
 
 ---
 
@@ -787,7 +857,8 @@ App Group is already used for shield handoff; a Control Center launch may not re
 | `blockedByFilter = .specific(...)` | No | Yes (device) | Blocks; generic page | Remained available (device; docs disagree) | Generic `Website Not Allowed` | No | No Heal button observed | No | **SPECIFIC-2 — Blocking only** |
 | `blockedByFilter = .auto(...)` | Yes (tested sample) | Optional add-on | Blocks; generic page | Remained available (device; docs disagree) | Generic `Website Not Allowed` | No | No Heal button observed | No | **AUTO-2 — Blocking only** |
 | Typed `WebDomain.token` → `shield.webDomains` | N/A | Attempted | N/A | N/A | N/A | N/A | N/A | N/A | **TOKEN-3 — token nil on device** |
-| Safari Web Extension | With own list/classifier | Yes (`example.com` domain family) | Yes when separately enabled (device) | No | Heal-controlled page | Page button | Via `heal://safe-place` + iOS confirm | **SAFARI-EXT-1 (14 Jul 2026)** |
+| Safari Web Extension | With own list/classifier | Yes (`example.com` domain family) | Yes when separately enabled (device) | Yes when separately enabled (device) | N/A (extension path) | Heal-controlled page | Page button | Via `heal://safe-place` + iOS confirm | **SAFARI-EXT-1 (14 Jul 2026)** |
+| Safari Web Extension + `.specific` coexistence | No | Yes (`example.com`) | Heal page (extension wins) | Heal page (extension wins) | Apple generic `Website Not Allowed` | Heal page in Safari only | Safari page button only | Safari only | **COEXIST-SPECIFIC-1 (15 Jul 2026)** |
 | Network Extension / DNS Proxy | With own classifier | Yes | Broad | Broad | Maybe | Not inside Chrome shield | Notification at best | Notification→Heal possible | **Deprioritized** |
 | Control Center control | Does not block | Does not block | Anywhere | Anywhere | Anywhere | N/A | System control | Yes (in principle) | **Deferred complement** |
 | App `shield.applications` | N/A | N/A | N/A | N/A | N/A | Yes | Yes | Yes | **Validated (Spike-Validation-Report)** |
@@ -805,7 +876,8 @@ App Group is already used for shield handoff; a Control Center launch may not re
 | Typed `WebDomain(domain:).token` → `shield.webDomains` | **TOKEN-3 (14 Jul 2026)** | Public token was `nil` on device |
 | Chrome Network Extension / DNS / notification-first | Deferred / deprioritized | Unlikely to put a button inside Chrome’s generic shield |
 | Control Center | Deferred complement | Does not solve blocking; useful after intervention path chosen |
-| Safari Web Extension | **SAFARI-EXT-1 (14 Jul 2026)** | Isolated `example.com` domain-family path proven (apex + tested `www`); production coverage / Managed Settings coexistence still unproven |
+| Safari Web Extension | **SAFARI-EXT-1 (14 Jul 2026)** | Isolated `example.com` domain-family path proven (apex + tested `www`; normal + Private when separately enabled) |
+| Safari Web Extension + `.specific` coexistence | **COEXIST-SPECIFIC-1 (15 Jul 2026)** | Hybrid proven for `example.com`: extension wins in Safari; `.specific` blocks Chrome with generic page |
 | Hard-coding / decoding opaque tokens | Rejected | Private/unsupported; App Review risk |
 
 ---
@@ -826,16 +898,17 @@ App Group is already used for shield handoff; a Control Center launch may not re
 ### Still open / next spikes
 
 1. ~~Safari Web Extension minimal redirect → Heal page → Safe Place~~ — **Done: SAFARI-EXT-1 (14 July 2026)** for isolated `example.com` domain family (apex + tested `www`; normal + Private when separately enabled).
-2. Production routing security: custom URL scheme vs Universal Links (spike used `heal://safe-place`; scheme ownership is weak).
-3. Extension behavior across additional Safari profiles / OS versions.
-4. Execution order / race when both extension redirect and `blockedByFilter` are active (**unknown** — do not assume).
-5. Broader real-world coverage quality / false positives of Apple’s `.auto` classifier.
-6. Full hostname matching matrix for `.specific` (`www`, public suffix, IDN, ports, schemes).
-7. Chrome Incognito under `blockedByFilter` (not recorded in the completed spike).
-8. Production entitlement / App Review / onboarding conversion for Safari Extension distribution.
-9. Production-region impact of `FamilyActivityData` EU limits (relevant if any future feature depends on data access).
-10. Control Center Safe Place entry as a complementary non-blocking path.
-11. Production-scale adult-domain list / dynamic or remote DNR rules for the Safari extension.
+2. ~~Execution order when both extension redirect and `.specific` blockedByFilter are active~~ — **Done: COEXIST-SPECIFIC-1 (15 July 2026)** for `example.com`; Safari extension wins in normal + Private Safari; `.specific` provides Chrome blocking-only fallback.
+3. Production routing security: custom URL scheme vs Universal Links (spike used `heal://safe-place`; scheme ownership is weak).
+4. Extension behavior across additional Safari profiles / OS versions.
+5. `.auto(...)` coexistence with Safari Web Extension (**Stage 2 — unproven**).
+6. Broader real-world coverage quality / false positives of Apple’s `.auto` classifier.
+7. Full hostname matching matrix for `.specific` (`www`, public suffix, IDN, ports, schemes) under coexistence.
+8. Chrome Incognito under `blockedByFilter` (not recorded in the completed spike).
+9. Production entitlement / App Review / onboarding conversion for Safari Extension distribution.
+10. Production-region impact of `FamilyActivityData` EU limits (relevant if any future feature depends on data access).
+11. Control Center Safe Place entry as a complementary non-blocking path.
+12. Production-scale adult-domain list / dynamic or remote DNR rules for the Safari extension.
 
 ---
 
@@ -855,9 +928,17 @@ Created from `main @ 48ef0f1`. Device results recorded in this document (AUTO-2 
 spike/safari-web-extension-block-page
 ```
 
-**Result: SAFARI-EXT-1** — see §13.1. Primary redirect test kept Managed Settings website filters cleared. Coexistence / ordering vs `blockedByFilter` was **not** tested.
+**Result: SAFARI-EXT-1** — see §13.1. Primary redirect test kept Managed Settings website filters cleared. Coexistence / ordering vs `blockedByFilter` was **not** tested in that branch.
 
-Chrome may remain **blocking-only** via `.auto` / `.specific` in a hybrid architecture.
+### Completed coexistence branch (15 July 2026)
+
+```text
+spike/safari-managedsettings-coexistence
+```
+
+**Result: COEXIST-SPECIFIC-1** — see §13.2. Safari Web Extension + named-store `.specific([WebDomain(domain: "example.com")])` active together. Safari (normal + Private): extension won → Heal page + Safe Place. Chrome: Apple generic `Website Not Allowed`. Unrelated sites unaffected. Clearing `.specific` restored Chrome; disabling extension restored Safari. `.auto(...)` coexistence not tested.
+
+Chrome may remain **blocking-only** via `.auto` / `.specific` in a hybrid architecture. **COEXIST-SPECIFIC-1** validates the `.specific` half of that hybrid for the tested domain; `.auto` coexistence is Stage 2.
 
 ---
 
@@ -880,6 +961,8 @@ Chrome may remain **blocking-only** via `.auto` / `.specific` in a hybrid archit
 | 14 July 2026 | Private Browsing remained available under both filters | Point-in-time device result; conflicts with Apple docs wording — interpret cautiously |
 | 14 July 2026 | Next: Safari Web Extension block-page spike | Only remaining supported candidate for Heal-controlled Safari intervention UI |
 | 14 July 2026 | **SAFARI-EXT-1** for Safari Web Extension | Real-device: `example.com` domain family (apex + tested `www`) → Heal `blocked.html` → confirm → Heal → Safe Place; normal + Private; unrelated sites unaffected; disable restores access |
+| 15 July 2026 | **COEXIST-SPECIFIC-1** for extension + `.specific` coexistence | Real-device: Safari extension wins (normal + Private) → Heal page + Safe Place; Chrome → Apple generic page; unrelated sites unaffected; clear `.specific` restores Chrome; disable extension restores Safari |
+| 15 July 2026 | `.auto(...)` coexistence remains unproven | Stage 2 spike required; automatic adult-category blocking not solved |
 
 ---
 
@@ -887,7 +970,8 @@ Chrome may remain **blocking-only** via `.auto` / `.specific` in a hybrid archit
 
 ### Project artifacts
 
-- `docs/Spike-Validation-Report.md` — formal app-shield validation; Safari Web Extension SAFARI-EXT-1 record.
+- `docs/Spike-Validation-Report.md` — formal app-shield validation; Safari Web Extension SAFARI-EXT-1 record; coexistence COEXIST-SPECIFIC-1 record.
+- `Heal/CoexistenceSpecificFilterService.swift` — named store `coexistenceSpecific`, `blockedByFilter = .specific` spike helper.
 - `HealSafariExtension/` — Manifest V3 static DNR redirect spike (`example.com` domain family → `blocked.html`).
 - `Heal/Info.plist`, `Heal/HealApp.swift`, `Heal/SpikeAppState.swift` — `heal://safe-place` deep-link routing into existing Safe Place presentation.
 - `Heal/WebsiteShieldService.swift` — named store `websiteFeasibility`, `shield.webDomains`.
@@ -958,7 +1042,7 @@ Chrome may remain **blocking-only** via `.auto` / `.specific` in a hybrid archit
 
 ---
 
-## 22. Point-in-time conclusion (14 July 2026)
+## 22. Point-in-time conclusion (15 July 2026)
 
 For **website** intervention with a custom Heal shield and Safe Place button, the only end-to-end path recorded as working in Safari is picker-selected `WebDomainToken` shielding via `store.shield.webDomains`.
 
@@ -974,4 +1058,8 @@ Separately, `webContent.blockedByFilter` was device-tested on 14 July 2026:
 
 **NO-GO as of 14 July 2026 / Xcode 26.6 / iOS SDK 26.5** for adding a Heal button inside the `blockedByFilter` experience. This does **not** make Family Controls as a whole a NO-GO: app shielding and picker-token website shielding remain separate validated/researched mechanisms. Blocking success without intervention is only a partial product result.
 
-The Safari Web Extension isolated path is now **device-validated as SAFARI-EXT-1** (14 July 2026): static DNR `main_frame` redirect for the `example.com` domain family (apex and tested `www` subdomain) → Heal-controlled `blocked.html` → explicit tap → iOS confirmation → Heal → Safe Place (normal Safari and Private Browsing when separately enabled). A hybrid may keep `.auto` / `.specific` as Chrome/other-browser **blocking-only** fallback. Control Center remains a complementary non-blocking entry path. Do **not** assume extension vs `blockedByFilter` execution order without a dedicated device test. Production-scale domain coverage, remote rules, App Review, and Universal Links vs custom schemes remain open.
+The Safari Web Extension isolated path is **device-validated as SAFARI-EXT-1** (14 July 2026): static DNR `main_frame` redirect for the `example.com` domain family (apex and tested `www` subdomain) → Heal-controlled `blocked.html` → explicit tap → iOS confirmation → Heal → Safe Place (normal Safari and Private Browsing when separately enabled).
+
+**COEXIST-SPECIFIC-1** (15 July 2026) validates a hybrid for `example.com`: when the Safari Web Extension and Managed Settings `.specific([WebDomain(domain: "example.com")])` are both active, the extension wins in normal and Private Safari (Heal-controlled page + Safe Place path), while Chrome shows Apple’s generic `Website Not Allowed` page with no Heal button. Unrelated sites were unaffected; clearing the dedicated `.specific` store restored Chrome access; disabling the extension restored Safari access.
+
+A hybrid may keep `.specific` (and potentially `.auto`) as Chrome/other-browser **blocking-only** fallback while the Safari Web Extension supplies intervention UI in Safari. **`.auto(...)` coexistence remains unproven (Stage 2).** Automatic adult-category blocking at production scale is **not** solved by these spikes. Control Center remains a complementary non-blocking entry path. Production-scale domain coverage, remote rules, App Review, and Universal Links vs custom schemes remain open.
