@@ -1,0 +1,65 @@
+{
+    "schemaVersion": 1,
+    "snapshotDate": "16 July 2026 11:40:03 (UTC)",
+    "description": "Verified-license upstream hosts snapshots used as Heal production Safari domain-list inputs. The merged StevenBlack porn-only file is not a production input. Local snapshot files are resolved as <sources-dir>/<snapshotFilename> via import_hosts.py --sources-dir.",
+    "mappingReference": "https://github.com/StevenBlack/hosts/blob/master/alternates/porn-only/readme.md",
+    "sources": [
+        {
+            "id": "bigdargon-adult",
+            "name": "BigDargon adult list",
+            "projectUrl": "https://github.com/bigdargon/hostsVN",
+            "sourceUrl": "https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/adult/hosts-VN",
+            "license": "MIT",
+            "snapshotFilename": "bigdargon-adult-hosts-VN.txt",
+            "sha256": "0dbc6e1f390963efc90f764b68c0da79c32cee21caeaeb89b4d4c24bf3a3ccdb",
+            "expectedEntryCount": 1895
+        },
+        {
+            "id": "sinfonietta-pornography",
+            "name": "Sinfonietta pornography",
+            "projectUrl": "https://github.com/Sinfonietta/hostfiles",
+            "sourceUrl": "https://raw.githubusercontent.com/Sinfonietta/hostfiles/master/pornography-hosts",
+            "license": "MIT",
+            "snapshotFilename": "sinfonietta-pornography-hosts.txt",
+            "sha256": "9a26dfd1ad977e06365938196b43a4c087583140b8e409735df557b07b2eaf50",
+            "expectedEntryCount": 61187
+        },
+        {
+            "id": "sinfonietta-snuff",
+            "name": "Sinfonietta snuff",
+            "projectUrl": "https://github.com/Sinfonietta/hostfiles",
+            "sourceUrl": "https://raw.githubusercontent.com/Sinfonietta/hostfiles/master/snuff-hosts",
+            "license": "MIT",
+            "snapshotFilename": "sinfonietta-snuff-hosts.txt",
+            "sha256": "b3a520a880082714add887c81b57810e8668238c4fec689c1a79b7f2cf511de8",
+            "expectedEntryCount": 23
+        },
+        {
+            "id": "tiuxo-pornography",
+            "name": "Tiuxo pornography",
+            "projectUrl": "https://github.com/tiuxo/hosts",
+            "sourceUrl": "https://raw.githubusercontent.com/tiuxo/hosts/master/porn",
+            "license": "CC-BY-4.0",
+            "snapshotFilename": "tiuxo-porn.txt",
+            "sha256": "2e30d7012de8560ced54c92963a1fc9e8b755c437d691d20fa268e810897399c",
+            "expectedEntryCount": 369
+        }
+    ],
+    "excludedSources": [
+        {
+            "id": "clefspeare13-pornhosts",
+            "name": "Clefspeare13/pornhosts",
+            "reason": "Upstream LICENSE not verifiable (GitHub repository access blocked)."
+        },
+        {
+            "id": "brijrajparmar27-host-sources",
+            "name": "brijrajparmar27/host-sources",
+            "reason": "No verifiable upstream LICENSE file or attribution statement."
+        },
+        {
+            "id": "stevenblack-porn-only-merged",
+            "name": "StevenBlack/hosts porn-only merged alternate",
+            "reason": "Merged aggregator snapshot is not a production input; production uses only the four verified upstream source files."
+        }
+    ]
+}

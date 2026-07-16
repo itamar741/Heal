@@ -392,6 +392,50 @@ This cleanup was **not** performed during the capacity spike because the spike t
 
 ---
 
+## Production Safari Domain List v1 (16 July 2026)
+
+| Field | Value |
+|-------|-------|
+| Branch | `feat/production-safari-domain-list-v1` |
+| Feature | Verified-license production Safari domain list + product `<all_urls>` permission model |
+| Classification | **SAFARI-DOMAIN-LIST-PROD-1** |
+| Device | Physical iPhone |
+| Production count | **63,311** domain-specific DNR rules |
+
+### Included verified-license sources
+
+- BigDargon adult list — MIT
+- Sinfonietta pornography — MIT
+- Sinfonietta snuff — MIT
+- Tiuxo pornography — CC BY 4.0
+
+Clefspeare13/pornhosts, brijrajparmar27/host-sources, and the merged StevenBlack porn-only alternate contribute **no** production domains. Raw upstream snapshots remain outside the repository.
+
+### Physical-device evidence (aggregates only)
+
+| Case | Result |
+|------|--------|
+| Static DNR rule count | 63,311 domain-specific rules loaded successfully |
+| Ruleset sampling | Responsive domains near the start, middle, and end redirected to Heal |
+| Normal Safari | Heal intervention page; Open Safe Place worked |
+| Private Browsing | Heal intervention page; Open Safe Place worked |
+| Unrelated Safari websites | Remained accessible |
+| Chrome with System Website Filtering disabled | Unaffected |
+| Chrome with System Website Filtering enabled | Apple generic fallback behavior retained |
+| Permission model | One `<all_urls>` host permission / WAR match; DNR rules control blocking scope |
+| Runtime | No noticeable delay, crash, freeze, or rule-loading failure |
+
+Tested hostnames are not recorded. Updates currently require a new app build (no remote list updates).
+
+### Future maintenance still required
+
+- inactive / stale domains, ownership drift, redirects, false positives
+- allowlist review and carefully reviewed local additions
+- snapshot / hash tracking for each verified upstream source
+- periodic revalidation; grace-period removal; no immediate removal for temporary downtime
+
+---
+
 ## Final Feasibility Conclusion
 
 **GO with constraints**
@@ -417,6 +461,7 @@ This cleanup was **not** performed during the capacity spike because the spike t
 - Safari Web Extension + Managed Settings `.auto()` classifier-only coexistence (**COEXIST-AUTO-CLASSIFIER-1**, 15 July 2026)
 - Safari broad website-access permission model (**SAFARI-PERMISSION-ALL-1**, 16 July 2026)
 - Safari full static DNR capacity (**SAFARI-DNR-CAPACITY-FULL-1**, 16 July 2026; 76,743 rules including `example.com`)
+- Production Safari domain list from verified-license sources (**SAFARI-DOMAIN-LIST-PROD-1**, 16 July 2026; 63,311 rules)
 
 ### Architecture conclusion (coexistence spike)
 
@@ -435,9 +480,9 @@ This cleanup was **not** performed during the capacity spike because the spike t
 - Long-term production persistence guarantees
 - Dedicated stale-marker device test older than five minutes
 - Complete console verification of every outcome button during Milestone K
-- Production Safari domain-list productization (importer, licensing/attribution, `<all_urls>` generator design, snapshot/hash tracking, onboarding/App Store explanation, false-positive policy, periodic cleanup/revalidation)
-- Automatic adult-category blocking at production scale
+- Automatic adult-category blocking at production scale beyond the verified-license static list
 - Remote DNR rule updates
+- Automatic inactive-domain cleanup
 
 ## Evidence and Remaining Uncertainty
 
