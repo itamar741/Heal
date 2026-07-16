@@ -89,10 +89,10 @@ StevenBlack/hosts’ [porn-only source mapping](https://github.com/StevenBlack/h
 
 #### Required CC BY 4.0 attribution (Tiuxo)
 
-- **Work:** Tiuxo categorized hosts — pornography list  
-- **Author / Licensor:** tiuxo ([GitHub project](https://github.com/tiuxo/hosts))  
-- **Source:** https://github.com/tiuxo/hosts (file path `porn`)  
-- **License:** [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)  
+- **Work:** Tiuxo categorized hosts — pornography list
+- **Author / Licensor:** tiuxo ([GitHub project](https://github.com/tiuxo/hosts))
+- **Source:** https://github.com/tiuxo/hosts (file path `porn`)
+- **License:** [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)
 - **Modifications:** Yes — Heal normalizes, merges with other verified sources, deduplicates, filters invalid hostnames, may apply allowlist/local additions, and converts domains into Safari DNR redirect rules. This is an adapted / modified form of the original hosts list, not a verbatim redistribution of the upstream file.
 
 ---
@@ -117,15 +117,15 @@ Heal does **not** redistribute the raw upstream hosts files inside this reposito
 
 Heal **does** create a modified derivative used at runtime as Safari Web Extension DNR rules:
 
-1. Verify SHA-256 of each of the four fixed external snapshots  
-2. Parse hosts-format entries  
-3. Normalize hostnames (lowercase; strip one trailing dot)  
-4. Reject malformed entries, schemes, paths, ports, wildcards, spaces, and IP addresses  
-5. Merge sources, deduplicate, and sort  
-6. Apply `allowlist.json` exclusions and `local-additions.json` additions when present  
-7. Emit `domains.json` and generate domain-specific `main_frame` DNR redirects to `/blocked.html`, with `<all_urls>` host permission / WAR matches for packaging  
+1. Verify SHA-256 of each of the four fixed external snapshots
+2. Parse hosts-format entries
+3. Normalize hostnames (lowercase; strip one trailing dot)
+4. Reject malformed entries, schemes, paths, ports, wildcards, spaces, and IP addresses
+5. Merge sources, deduplicate, and sort
+6. Apply `allowlist.json` exclusions and `local-additions.json` additions when present
+7. Emit `domains.json` and generate domain-specific `main_frame` DNR redirects to `/blocked.html`, with `<all_urls>` host permission / WAR matches for packaging
 
 Snapshot identity for this verified-source pipeline:
 
-- Date: **16 July 2026 11:40:03 (UTC)**  
+- Date: **16 July 2026 11:40:03 (UTC)**
 - Sources, filenames, hashes, and expected counts: see tables above and `Tools/SafariDomainRules/source-metadata.json`
