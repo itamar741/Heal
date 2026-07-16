@@ -23,6 +23,7 @@ This record covers:
 - Safari Web Extension + Managed Settings `.auto(...)` with an explicitly supplied domain: device-validated as **COEXIST-AUTO-1** (15 July 2026).
 - Safari Web Extension + Managed Settings `.auto()` classifier-only coexistence: device-validated as **COEXIST-AUTO-CLASSIFIER-1** (15 July 2026) for a classifier-selected test domain (hostname not recorded in repo).
 - Safari broad website-access permission + full static DNR capacity: device-validated as **SAFARI-PERMISSION-ALL-1** and **SAFARI-DNR-CAPACITY-FULL-1** (16 July 2026; 76,743 rules including `example.com`; no adult hostname recorded in repo).
+- Production Safari domain list from four verified-license sources: device-validated as **SAFARI-DOMAIN-LIST-PROD-1** (16 July 2026; **63,311** domain-specific DNR rules; no adult hostname recorded in repo).
 
 Out of scope for this document’s conclusions:
 
@@ -88,7 +89,7 @@ On a physical iPhone, branch `spike/web-content-filter-behavior` (baseline `main
 ### Remaining primary options
 
 1. Safari Web Extension with a Heal-controlled block page and explicit “Open Safe Place” control — **SAFARI-EXT-1 (14 July 2026)** for the isolated `example.com` domain-family spike; full static DNR capacity later proven as **SAFARI-DNR-CAPACITY-FULL-1** (16 July 2026).
-2. Hybrid: Safari Web Extension for Safari intervention UI; `.specific(...)` / `.auto(...)` as **blocking-only** fallback for Chrome and other browsers — **COEXIST-SPECIFIC-1**, **COEXIST-AUTO-1**, and **COEXIST-AUTO-CLASSIFIER-1** (15 July 2026) device-validated on physical iPhone. Broad Safari permission feasibility proven as **SAFARI-PERMISSION-ALL-1** (16 July 2026). Production domain-list productization (importer, licensing, generator design, onboarding) remains open.
+2. Hybrid: Safari Web Extension for Safari intervention UI; `.specific(...)` / `.auto(...)` as **blocking-only** fallback for Chrome and other browsers — **COEXIST-SPECIFIC-1**, **COEXIST-AUTO-1**, and **COEXIST-AUTO-CLASSIFIER-1** (15 July 2026) device-validated on physical iPhone. Broad Safari permission feasibility proven as **SAFARI-PERMISSION-ALL-1** (16 July 2026). Production verified-license domain list shipped as **SAFARI-DOMAIN-LIST-PROD-1** (16 July 2026; 63,311 rules). Follow-ups remain: onboarding/App Store explanation, remote updates, automatic list-quality cleanup.
 3. Control Center control to open Safe Place — complementary non-blocking entry, **deferred**.
 4. Picker-selected `WebDomainToken` → `shield.webDomains` — remains a recorded Safari path with custom Heal shield + Safe Place button (does not satisfy typed-domain or automatic adult coverage alone).
 
@@ -1003,27 +1004,35 @@ Actual redirects: only domains present in rules.json (76,743 domain-specific sta
 - No tested adult hostname is recorded in this repository.
 - Third-party domains and temporary generated capacity rules were **removed before commit**; product files restored to the `example.com` fixture only.
 
-**Production adoption still requires**
+**Production adoption** (importer, notices, product `<all_urls>`, hash tracking, verified-license sources) was completed later the same day as **SAFARI-DOMAIN-LIST-PROD-1** — see §13.6. Ongoing maintenance still assumes grace-period stale-domain review, ownership/category drift checks, redirect/parked-domain review, and allowlist handling. Automatic cleanup was **not** performed during the capacity spike.
 
-- a permanent hosts-file importer;
-- licensing and attribution notices;
-- a product generator design for `<all_urls>`;
-- snapshot / version / hash tracking;
-- onboarding and App Store explanation for broad website access;
-- a policy for local verified additions and false positives;
-- periodic list cleanup and revalidation for production maintenance.
+**Status:** capacity and broad-permission feasibility **device-validated** on 16 July 2026. This capacity spike itself did **not** ship a production domain list; production shipment is recorded in §13.6.
 
-Production list maintenance should assume:
+### 13.6 Production Safari Domain List v1 — 16 July 2026 (**SAFARI-DOMAIN-LIST-PROD-1**)
 
-- inactive or non-resolving domains may be removed after a defined grace period;
-- temporary downtime alone must not immediately remove a domain;
-- domains can change ownership or content category, creating false positives;
-- parked domains, redirects, duplicates, malformed entries, and stale subdomains should be reviewed;
-- production use should include snapshot/version tracking, periodic validation, and allowlist handling.
+| Field | Value |
+|-------|-------|
+| Branch | `feat/production-safari-domain-list-v1` |
+| Classification | **SAFARI-DOMAIN-LIST-PROD-1** |
+| Production count | **63,311** domain-specific DNR rules |
+| Permission model | Product `host_permissions` / WAR matches = `["<all_urls>"]`; blocking scoped by domain-specific DNR rules |
+| Included sources | BigDargon adult (MIT); Sinfonietta pornography (MIT); Sinfonietta snuff (MIT); Tiuxo pornography (CC BY 4.0) |
+| Excluded | Clefspeare13/pornhosts; brijrajparmar27/host-sources; merged StevenBlack porn-only alternate |
+| Device | Physical iPhone |
 
-This cleanup was **not** performed during the capacity spike because the spike tested Safari rule capacity, not list quality.
+**Physical-device evidence (aggregates only):**
 
-**Status:** capacity and broad-permission feasibility **device-validated** on 16 July 2026. This does **not** ship a production domain list or `<all_urls>` product change.
+- 63,311 rules loaded successfully.
+- Responsive domains near the start, middle, and end of the ruleset redirected to Heal.
+- Normal Safari and Private Browsing both showed Heal’s intervention page; Open Safe Place worked.
+- Unrelated Safari websites remained accessible.
+- Chrome remained unaffected while System Website Filtering was disabled; with filtering enabled, Chrome retained Apple’s generic fallback.
+- No noticeable delay, crash, freeze, or rule-loading failure.
+- Tested hostnames are not recorded. Raw upstream snapshots remain outside the repository. Updates require a new app build.
+
+**Still open for follow-up:** onboarding/App Store explanation for broad website access; remote DNR updates; automatic inactive-domain cleanup; ongoing allowlist / local-addition / ownership-drift / redirect / false-positive maintenance.
+
+**Status:** production verified-license Safari domain list **device-validated and prepared for merge** as **SAFARI-DOMAIN-LIST-PROD-1** on 16 July 2026.
 
 ---
 
@@ -1093,6 +1102,7 @@ App Group is already used for shield handoff; a Control Center launch may not re
 | Safari Web Extension + `.auto()` classifier-only coexistence | **COEXIST-AUTO-CLASSIFIER-1 (15 Jul 2026)** | Classifier-selected domain: extension wins Safari; `.auto()` blocks Chrome with generic page |
 | Safari Web Extension `<all_urls>` permission (temporary spike) | **SAFARI-PERMISSION-ALL-1 (16 Jul 2026)** | Broad permission usable; DNR still scoped blocking; not a production ship decision |
 | Safari Web Extension full static DNR capacity | **SAFARI-DNR-CAPACITY-FULL-1 (16 Jul 2026)** | 76,743 rules loaded on device; temporary list removed before commit |
+| Production Safari domain list (verified-license sources) | **SAFARI-DOMAIN-LIST-PROD-1 (16 Jul 2026)** | 63,311 domain-specific rules; product `<all_urls>`; start/middle/end validated on device |
 | Hard-coding / decoding opaque tokens | Rejected | Private/unsupported; App Review risk |
 
 ---
@@ -1119,7 +1129,7 @@ App Group is already used for shield handoff; a Control Center launch may not re
 5. Production routing security: custom URL scheme vs Universal Links (spike used `heal://safe-place`; scheme ownership is weak).
 6. Extension behavior across additional Safari profiles / OS versions.
 7. ~~Physical-device Safari static DNR capacity / broad `<all_urls>` permission feasibility~~ — **Done: SAFARI-PERMISSION-ALL-1** + **SAFARI-DNR-CAPACITY-FULL-1 (16 July 2026)** for 76,743 rules including `example.com`; temporary list and `<all_urls>` removed before commit.
-8. Production Safari domain-list productization: permanent hosts-file importer; licensing/attribution; product generator design for `<all_urls>`; snapshot/version/hash tracking; onboarding and App Store explanation for broad website access; policy for local verified additions and false positives; periodic cleanup and revalidation (inactive domains after a grace period; no immediate removal for temporary downtime; ownership/category drift; parked/redirect/duplicate/malformed/stale-subdomain review; allowlist handling). Capacity spike did not perform list-quality cleanup.
+8. ~~Production Safari domain-list productization~~ — **Done: SAFARI-DOMAIN-LIST-PROD-1 (16 July 2026)** for **63,311** domain-specific DNR rules from four verified-license sources (BigDargon adult MIT; Sinfonietta pornography + snuff MIT; Tiuxo pornography CC BY 4.0); product `<all_urls>` permission with domain-specific blocking; importer + hash tracking + notices; physical-device start/middle/end validation; Clefspeare13, brijrajparmar27, and merged StevenBlack porn-only excluded. Still open for follow-up: onboarding/App Store explanation for broad website access; automatic inactive-domain cleanup; non-empty allowlist/local-addition policy execution; periodic revalidation for ownership drift, redirects, false positives.
 9. Remote DNR rule updates.
 10. Broader real-world coverage quality / false positives of Apple’s `.auto` classifier.
 11. Full hostname matching matrix for `.specific` / `.auto` (`www`, public suffix, IDN, ports, schemes) under coexistence.
@@ -1160,7 +1170,7 @@ spike/safari-managedsettings-coexistence
 
 **Result: COEXIST-AUTO-CLASSIFIER-1** — see §13.4. Classifier-only `.auto()` + Safari extension covering a classifier-selected test domain (temporary local rule during device test only; not committed). Extension-only diagnostic succeeded first. Safari (normal + Private): Heal page + Safe Place. Chrome: Apple generic `Website Not Allowed`. Unrelated sites unaffected.
 
-**Architecture conclusion:** Safari provides Heal intervention UI when the extension covers the domain; Managed Settings `.auto()` provides Apple generic blocking in Chrome. Heal must maintain its own Safari domain coverage because Apple’s classifier list is not exposed to the extension. Production domain-list productization remains open.
+**Architecture conclusion:** Safari provides Heal intervention UI when the extension covers the domain; Managed Settings `.auto()` provides Apple generic blocking in Chrome. Heal must maintain its own Safari domain coverage because Apple’s classifier list is not exposed to the extension. Production verified-license domain list is **SAFARI-DOMAIN-LIST-PROD-1** (63,311 rules); onboarding, remote updates, and automatic cleanup remain follow-ups.
 
 ### Completed Safari DNR capacity branch (16 July 2026)
 
@@ -1197,6 +1207,7 @@ spike/safari-domain-rules-capacity-1000
 | 15 July 2026 | Hybrid architecture conclusion | Safari: Heal page when extension covers domain; Chrome: Apple generic via `.auto()`; Heal needs own Safari domain list |
 | 16 July 2026 | **SAFARI-PERMISSION-ALL-1** for broad Safari website access | Real-device: one `<all_urls>` permission replaced per-domain approvals; DNR still controlled blocking scope; unrelated sites accessible; normal + Private worked |
 | 16 July 2026 | **SAFARI-DNR-CAPACITY-FULL-1** for full static DNR capacity | Real-device: 76,743 domain-specific rules including `example.com`; start/middle/end sampling redirected; no runtime degradation observed; temporary list removed before commit |
+| 16 July 2026 | **SAFARI-DOMAIN-LIST-PROD-1** for production Safari domain list | Real-device: 63,311 verified-license domain-specific rules; start/middle/end redirected; normal + Private + Safe Place; unrelated sites accessible; Chrome unaffected when filtering disabled |
 
 ---
 
@@ -1204,7 +1215,8 @@ spike/safari-domain-rules-capacity-1000
 
 ### Project artifacts
 
-- `docs/Spike-Validation-Report.md` — formal app-shield validation; Safari Web Extension SAFARI-EXT-1; coexistence COEXIST-SPECIFIC-1, COEXIST-AUTO-1, COEXIST-AUTO-CLASSIFIER-1; capacity SAFARI-PERMISSION-ALL-1 / SAFARI-DNR-CAPACITY-FULL-1 records.
+- `docs/Spike-Validation-Report.md` — formal app-shield validation; Safari Web Extension SAFARI-EXT-1; coexistence COEXIST-SPECIFIC-1, COEXIST-AUTO-1, COEXIST-AUTO-CLASSIFIER-1; capacity SAFARI-PERMISSION-ALL-1 / SAFARI-DNR-CAPACITY-FULL-1; production SAFARI-DOMAIN-LIST-PROD-1 records.
+- `docs/safari-domain-rules.md` — production importer/generator workflow and SAFARI-DOMAIN-LIST-PROD-1 device results.
 - `Heal/CoexistenceSpecificFilterService.swift` — named store `coexistenceSpecific`, `blockedByFilter = .specific` spike helper.
 - `Heal/CoexistenceAutoFilterService.swift` — named store `coexistenceAuto`, explicit-domain and classifier-only `.auto` spike helper.
 - `HealSafariExtension/` — Manifest V3 static DNR redirect spike (`example.com` domain family → `blocked.html`).
@@ -1307,4 +1319,4 @@ The Safari Web Extension isolated path is **device-validated as SAFARI-EXT-1** (
 - Managed Settings `.auto()` can provide Apple’s generic restriction page in Chrome and other affected browsers.
 - For Safari to show Heal’s page, Heal’s Safari domain rules must also cover the domain — Apple’s classifier data is not exposed to the Safari extension, so Heal still needs its own Safari domain coverage.
 - **SAFARI-PERMISSION-ALL-1** + **SAFARI-DNR-CAPACITY-FULL-1** (16 July 2026) prove that a temporary full static ruleset of **76,743** domain-specific DNR rules (including `example.com`), paired with one temporary `<all_urls>` website-access permission, can load and redirect correctly on a physical iPhone (start/middle/end sampling; normal + Private; unrelated sites accessible; no runtime degradation observed during the test). Temporary third-party domains and generated capacity rules were removed before commit.
-- Production domain-list productization remains open: permanent hosts-file importer; licensing and attribution notices; product generator design for `<all_urls>`; snapshot/version/hash tracking; onboarding and App Store explanation for broad website access; policy for local verified additions and false positives; periodic cleanup and revalidation (grace-period removal of inactive domains, no immediate removal for temporary downtime, ownership/category drift, parked/redirect/duplicate/malformed/stale-subdomain review, allowlist handling); plus remote rules, App Review, and Universal Links vs custom schemes. List-quality cleanup was not part of the capacity spike.
+- **SAFARI-DOMAIN-LIST-PROD-1** (16 July 2026) ships the first production verified-license Safari domain list: **63,311** domain-specific DNR rules from BigDargon, Sinfonietta (pornography + snuff), and Tiuxo; product `<all_urls>` permission with domain-specific blocking; importer, hashes, allowlist/local-addition foundations, and third-party notices. Clefspeare13, brijrajparmar27, and the merged StevenBlack porn-only file contribute no production data. Follow-ups remain: onboarding/App Store explanation, remote rules, automatic list-quality cleanup, App Review, and Universal Links vs custom schemes.
