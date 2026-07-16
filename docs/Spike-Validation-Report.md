@@ -216,7 +216,8 @@ Managed Settings website filters (`.auto` / `.specific` / website shields) were 
 
 ### Still unproven for this extension path
 
-- Production-scale adult-domain coverage / remote rule updates
+- Production domain-list productization (see later **SAFARI-DNR-CAPACITY-FULL-1** / **SAFARI-PERMISSION-ALL-1** for capacity feasibility; importer/licensing/onboarding still open)
+- Remote rule updates
 - App Store review and onboarding conversion
 - Universal Links vs custom-scheme production security choice
 
@@ -336,6 +337,50 @@ Production-scale domain-list architecture is **not** claimed solved.
 
 ---
 
+## Safari DNR capacity + broad permission spike (16 July 2026)
+
+| Field | Value |
+|-------|-------|
+| Branch | `spike/safari-domain-rules-capacity-1000` |
+| Baseline | `main` / `github/master` @ `06c3fcb` |
+| Feature | Temporary full static DNR capacity set + temporary `<all_urls>` website-access permission |
+| Xcode / SDK | 26.6 / iOS SDK 26.5 |
+| Device | Physical iPhone |
+| Classifications | **SAFARI-PERMISSION-ALL-1**; **SAFARI-DNR-CAPACITY-FULL-1** |
+
+### Classifications
+
+**SAFARI-PERMISSION-ALL-1** — one broad Safari website-access permission (`<all_urls>`) replaced impractical per-domain approvals; DNR redirects for covered test domains succeeded; unrelated sites remained accessible; normal and Private Browsing both worked.
+
+**SAFARI-DNR-CAPACITY-FULL-1** — **76,743** domain-specific static DNR rules (including the `example.com` fixture) built, signed, installed, and loaded on a physical iPhone with no noticeable delay, crash, freeze, or rule-loading failure during the test.
+
+### Physical-device evidence (aggregates only)
+
+| Case | Result |
+|------|--------|
+| Static DNR rule count | 76,743 domain-specific rules, including `example.com` |
+| Ruleset sampling | Responsive imported domains near the start, middle, and end of the generated ruleset redirected correctly |
+| `example.com` (normal + Private Safari) | Heal-controlled page; Open Safe Place worked |
+| Chrome with System Website Filtering disabled | Unaffected for imported test domains |
+| Unrelated Safari / Chrome sites | Remained accessible |
+| Permission model | One `<all_urls>` host permission / WAR match granted broad access; DNR rules still controlled actual blocking scope |
+| Runtime | No noticeable delay, crash, freeze, or rule-loading failure observed |
+
+No tested adult hostname is recorded in this report. Third-party domains and temporary generated capacity rules were **removed before commit**; product files were restored to the `example.com` fixture only.
+
+### Production adoption still required
+
+Capacity and broad-permission feasibility are proven for this spike only. Production adoption still requires:
+
+- a permanent hosts-file importer;
+- licensing and attribution notices;
+- a product generator design for `<all_urls>`;
+- snapshot / version / hash tracking;
+- onboarding and App Store explanation for broad website access;
+- a policy for local verified additions and false positives.
+
+---
+
 ## Final Feasibility Conclusion
 
 **GO with constraints**
@@ -359,6 +404,8 @@ Production-scale domain-list architecture is **not** claimed solved.
 - Safari Web Extension + Managed Settings `.specific` coexistence (**COEXIST-SPECIFIC-1**, 15 July 2026)
 - Safari Web Extension + Managed Settings `.auto` coexistence with explicitly supplied domain (**COEXIST-AUTO-1**, 15 July 2026)
 - Safari Web Extension + Managed Settings `.auto()` classifier-only coexistence (**COEXIST-AUTO-CLASSIFIER-1**, 15 July 2026)
+- Safari broad website-access permission model (**SAFARI-PERMISSION-ALL-1**, 16 July 2026)
+- Safari full static DNR capacity (**SAFARI-DNR-CAPACITY-FULL-1**, 16 July 2026; 76,743 rules including `example.com`)
 
 ### Architecture conclusion (coexistence spike)
 
@@ -377,8 +424,9 @@ Production-scale domain-list architecture is **not** claimed solved.
 - Long-term production persistence guarantees
 - Dedicated stale-marker device test older than five minutes
 - Complete console verification of every outcome button during Milestone K
-- Production-scale Safari extension domain list / remote rule updates
+- Production Safari domain-list productization (importer, licensing/attribution, `<all_urls>` generator design, snapshot/hash tracking, onboarding/App Store explanation, false-positive policy)
 - Automatic adult-category blocking at production scale
+- Remote DNR rule updates
 
 ## Evidence and Remaining Uncertainty
 
