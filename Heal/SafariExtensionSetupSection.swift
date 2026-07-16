@@ -13,6 +13,11 @@ struct SafariExtensionSetupSection: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var extensionState: SafariExtensionService.ExtensionState = .checking
     @State private var actionMessage: String?
+    // Local ownership is enough while this section owns only local display state.
+    // If Safari extension status later joins a shared multi-step onboarding flow,
+    // move that flow state into a dedicated onboarding model/coordinator and keep
+    // SafariExtensionService stateless and injectable — not shared mutable state.
+    private let service = SafariExtensionService()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -118,22 +123,24 @@ struct SafariExtensionSetupSection: View {
     }
 
     private func refresh() async {
-        await SafariExtensionService.shared.refreshState()
-        extensionState = SafariExtensionService.shared.currentState
-        if case .error(let message) = extensionState {
+        extensionState = .checking
+        let state = await service.fetchState()
+        extensionState = state
+
+        if case .error(let message) = state {
             actionMessage = message
+        } else {
+            actionMessage = nil
         }
     }
 
     private func openSettings() async {
         do {
-            try await SafariExtensionService.shared.openExtensionSettings()
+            try await service.openExtensionSettings()
             actionMessage = "Opened Safari Extension Settings. Enable the extension, then return here."
         } catch {
             actionMessage = "Could not open Safari Extension Settings: \(error.localizedDescription)"
         }
-
-        await refresh()
     }
 }
 

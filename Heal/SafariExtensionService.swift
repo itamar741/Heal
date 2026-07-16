@@ -5,6 +5,7 @@
 //  Product foundation: query Safari Web Extension enablement and open
 //  Heal’s extension settings via public SafariServices APIs (iOS 26.2+).
 //  Does not report All Websites access or Private Browsing configuration.
+//  Stateless — callers own any display state.
 //
 
 import Foundation
@@ -20,27 +21,10 @@ final class SafariExtensionService {
         case error(String)
     }
 
-    static let shared = SafariExtensionService()
-
     /// Bundle identifier for the embedded Heal Safari Web Extension.
     static let extensionIdentifier = "com.itamar.Heal.HealSafariExtension"
 
-    private(set) var currentState: ExtensionState = .checking
-
-    private init() {}
-
-    func refreshState() async {
-        currentState = .checking
-        currentState = await fetchState()
-    }
-
-    func openExtensionSettings() async throws {
-        try await SFSafariSettings.openExtensionsSettings(
-            forIdentifiers: [Self.extensionIdentifier]
-        )
-    }
-
-    private func fetchState() async -> ExtensionState {
+    func fetchState() async -> ExtensionState {
         await withCheckedContinuation { continuation in
             SFSafariExtensionManager.getStateOfExtension(
                 withIdentifier: Self.extensionIdentifier
@@ -58,5 +42,11 @@ final class SafariExtensionService {
                 continuation.resume(returning: state.isEnabled ? .enabled : .disabled)
             }
         }
+    }
+
+    func openExtensionSettings() async throws {
+        try await SFSafariSettings.openExtensionsSettings(
+            forIdentifiers: [Self.extensionIdentifier]
+        )
     }
 }
