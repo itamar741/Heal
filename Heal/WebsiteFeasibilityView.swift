@@ -112,6 +112,10 @@ struct WebsiteFeasibilityView: View {
 
                 Divider()
 
+                SafariExtensionSetupSection()
+
+                Divider()
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text("System Website Filtering")
                         .font(.headline)
@@ -119,6 +123,13 @@ struct WebsiteFeasibilityView: View {
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(systemFilterStateColor)
                 }
+
+                Text(
+                    "Finish Safari extension setup before enabling System Website Filtering. "
+                        + "On the tested device, an active system web filter greyed out Safari extension settings."
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
 
                 if let systemFilterMessage {
                     Text(systemFilterMessage)
