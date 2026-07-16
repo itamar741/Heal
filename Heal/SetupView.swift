@@ -10,47 +10,52 @@ struct SetupView: View {
     @Bindable var appState: SpikeAppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Text("Heal Spike")
-                .font(.largeTitle.bold())
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Text("Heal Spike")
+                    .font(.largeTitle.bold())
 
-            Text("Screen Time access is required so Heal can interrupt a blocked app and guide you into a Safe Place. This spike only requests authorization for you as an individual — not a parent/child setup.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+                Text("Screen Time access is required so Heal can interrupt a blocked app and guide you into a Safe Place. This spike only requests authorization for you as an individual — not a parent/child setup.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Authorization status")
-                    .font(.headline)
-                Text(statusLabel)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(statusColor)
-            }
-
-            if let lastErrorMessage = appState.lastErrorMessage {
-                Text(lastErrorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-            }
-
-            Button {
-                Task {
-                    await appState.requestAuthorization()
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Authorization status")
+                        .font(.headline)
+                    Text(statusLabel)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(statusColor)
                 }
-            } label: {
-                if appState.isRequestingAuthorization {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Text(buttonTitle)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(isRequestButtonDisabled)
 
-            Spacer()
+                if let lastErrorMessage = appState.lastErrorMessage {
+                    Text(lastErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+
+                Button {
+                    Task {
+                        await appState.requestAuthorization()
+                    }
+                } label: {
+                    if appState.isRequestingAuthorization {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text(buttonTitle)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isRequestButtonDisabled)
+
+                Divider()
+
+                SafariExtensionSetupSection()
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
         .onAppear {
             appState.refreshAuthorizationStatus()
         }
