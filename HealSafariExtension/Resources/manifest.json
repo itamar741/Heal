@@ -18,13 +18,12 @@
         "declarativeNetRequestWithHostAccess"
     ],
     "host_permissions": [
-        "*://example.com/*",
-        "*://*.example.com/*"
+        "<all_urls>"
     ],
     "declarative_net_request": {
         "rule_resources": [
             {
-                "id": "block_example_com",
+                "id": "heal_domain_blocklist",
                 "enabled": true,
                 "path": "rules.json"
             }
@@ -36,8 +35,7 @@
                 "blocked.html"
             ],
             "matches": [
-                "*://example.com/*",
-                "*://*.example.com/*"
+                "<all_urls>"
             ]
         }
     ]

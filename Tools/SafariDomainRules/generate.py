@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,8 @@ MANIFEST_PATH = REPO_ROOT / "HealSafariExtension" / "Resources" / "manifest.json
 RULES_PATH = REPO_ROOT / "HealSafariExtension" / "Resources" / "rules.json"
 
 SUPPORTED_SCHEMA_VERSION = 1
+PRODUCT_RULESET_ID = "heal_domain_blocklist"
+HOST_PERMISSIONS = ["<all_urls>"]
 HOSTNAME_RE = re.compile(
     r"^(?=.{1,253}$)(?!-)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
     r"(?:\.(?!-)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$"
@@ -71,13 +74,6 @@ def normalize_hostname(raw: str) -> str:
         raise DomainRulesError(f"malformed hostname: {raw!r}")
 
     return lowered
-
-
-def host_permission(domain: str, include_subdomains: bool) -> list[str]:
-    permissions = [f"*://{domain}/*"]
-    if include_subdomains:
-        permissions.append(f"*://*.{domain}/*")
-    return permissions
 
 
 def load_source(path: Path) -> list[dict[str, Any]]:
@@ -165,16 +161,7 @@ def build_rules(domains: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rules
 
 
-def build_host_permissions(domains: list[dict[str, Any]]) -> list[str]:
-    permissions: list[str] = []
-    for entry in domains:
-        permissions.extend(
-            host_permission(entry["domain"], entry["includeSubdomains"])
-        )
-    return permissions
-
-
-def update_manifest(manifest: dict[str, Any], host_permissions: list[str]) -> None:
+def update_manifest(manifest: dict[str, Any]) -> None:
     if "declarative_net_request" not in manifest:
         raise DomainRulesError(
             "manifest.json is missing declarative_net_request; "
@@ -187,23 +174,27 @@ def update_manifest(manifest: dict[str, Any], host_permissions: list[str]) -> No
             "manifest.json is missing a static ruleset reference"
         )
 
-    has_rules_json = any(
-        isinstance(item, dict) and item.get("path") == "rules.json"
+    rules_json_resources = [
+        item
         for item in rule_resources
-    )
-    if not has_rules_json:
+        if isinstance(item, dict) and item.get("path") == "rules.json"
+    ]
+    if not rules_json_resources:
         raise DomainRulesError(
             "manifest.json static ruleset reference must point to rules.json"
         )
 
-    if "<all_urls>" in host_permissions:
-        raise DomainRulesError("<all_urls> is not allowed")
+    for item in rules_json_resources:
+        item["id"] = PRODUCT_RULESET_ID
+        item["enabled"] = True
+        item["path"] = "rules.json"
 
-    manifest["host_permissions"] = host_permissions
+    # Production permission model: one All Websites grant; DNR rules scope blocking.
+    manifest["host_permissions"] = list(HOST_PERMISSIONS)
     manifest["web_accessible_resources"] = [
         {
             "resources": ["blocked.html"],
-            "matches": list(host_permissions),
+            "matches": list(HOST_PERMISSIONS),
         }
     ]
 
@@ -214,8 +205,8 @@ def write_json(path: Path, value: Any) -> None:
 
 
 def generate(source_path: Path) -> None:
+    started = time.perf_counter()
     domains = load_source(source_path)
-    host_permissions = build_host_permissions(domains)
     rules = build_rules(domains)
 
     try:
@@ -229,24 +220,28 @@ def generate(source_path: Path) -> None:
         fail("manifest.json root must be an object")
 
     try:
-        update_manifest(manifest, host_permissions)
+        update_manifest(manifest)
     except DomainRulesError as exc:
         fail(str(exc))
 
     write_json(MANIFEST_PATH, manifest)
     write_json(RULES_PATH, rules)
 
+    elapsed_ms = (time.perf_counter() - started) * 1000.0
     subdomain_count = sum(1 for item in domains if item["includeSubdomains"])
     print(
         "Safari domain rules generated: "
         f"{len(domains)} domain(s), "
         f"{subdomain_count} with subdomains, "
         f"{len(rules)} DNR rule(s), "
-        f"{len(host_permissions)} host permission(s)."
+        f"{len(HOST_PERMISSIONS)} host permission(s)."
     )
     print(f"Source: {source_path}")
     print(f"Updated: {MANIFEST_PATH.relative_to(REPO_ROOT)}")
     print(f"Updated: {RULES_PATH.relative_to(REPO_ROOT)}")
+    print(f"Manifest size bytes: {MANIFEST_PATH.stat().st_size}")
+    print(f"Rules size bytes: {RULES_PATH.stat().st_size}")
+    print(f"Duration ms: {elapsed_ms:.1f}")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
