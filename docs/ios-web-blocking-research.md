@@ -954,7 +954,7 @@ Classifier-selected test domain (Apple .auto() blocks independently)
 
 **Still unproven / open for product**
 
-- Production domain-list productization (importer, licensing/attribution, generator design, snapshot/hash tracking, onboarding/App Store explanation, false-positive policy). See §13.5 for capacity feasibility.
+- Production domain-list productization (importer, licensing/attribution, generator design, snapshot/hash tracking, onboarding/App Store explanation, false-positive policy, periodic cleanup/revalidation). See §13.5 for capacity feasibility.
 - Remote rule updates, App Review, onboarding conversion.
 - Behavior across other iOS versions, browsers, and Safari profiles.
 - Full classifier coverage quality and false-positive rates.
@@ -1010,7 +1010,18 @@ Actual redirects: only domains present in rules.json (76,743 domain-specific sta
 - a product generator design for `<all_urls>`;
 - snapshot / version / hash tracking;
 - onboarding and App Store explanation for broad website access;
-- a policy for local verified additions and false positives.
+- a policy for local verified additions and false positives;
+- periodic list cleanup and revalidation for production maintenance.
+
+Production list maintenance should assume:
+
+- inactive or non-resolving domains may be removed after a defined grace period;
+- temporary downtime alone must not immediately remove a domain;
+- domains can change ownership or content category, creating false positives;
+- parked domains, redirects, duplicates, malformed entries, and stale subdomains should be reviewed;
+- production use should include snapshot/version tracking, periodic validation, and allowlist handling.
+
+This cleanup was **not** performed during the capacity spike because the spike tested Safari rule capacity, not list quality.
 
 **Status:** capacity and broad-permission feasibility **device-validated** on 16 July 2026. This does **not** ship a production domain list or `<all_urls>` product change.
 
@@ -1108,7 +1119,7 @@ App Group is already used for shield handoff; a Control Center launch may not re
 5. Production routing security: custom URL scheme vs Universal Links (spike used `heal://safe-place`; scheme ownership is weak).
 6. Extension behavior across additional Safari profiles / OS versions.
 7. ~~Physical-device Safari static DNR capacity / broad `<all_urls>` permission feasibility~~ — **Done: SAFARI-PERMISSION-ALL-1** + **SAFARI-DNR-CAPACITY-FULL-1 (16 July 2026)** for 76,743 rules including `example.com`; temporary list and `<all_urls>` removed before commit.
-8. Production Safari domain-list productization: permanent hosts-file importer; licensing/attribution; product generator design for `<all_urls>`; snapshot/version/hash tracking; onboarding and App Store explanation for broad website access; policy for local verified additions and false positives.
+8. Production Safari domain-list productization: permanent hosts-file importer; licensing/attribution; product generator design for `<all_urls>`; snapshot/version/hash tracking; onboarding and App Store explanation for broad website access; policy for local verified additions and false positives; periodic cleanup and revalidation (inactive domains after a grace period; no immediate removal for temporary downtime; ownership/category drift; parked/redirect/duplicate/malformed/stale-subdomain review; allowlist handling). Capacity spike did not perform list-quality cleanup.
 9. Remote DNR rule updates.
 10. Broader real-world coverage quality / false positives of Apple’s `.auto` classifier.
 11. Full hostname matching matrix for `.specific` / `.auto` (`www`, public suffix, IDN, ports, schemes) under coexistence.
@@ -1296,4 +1307,4 @@ The Safari Web Extension isolated path is **device-validated as SAFARI-EXT-1** (
 - Managed Settings `.auto()` can provide Apple’s generic restriction page in Chrome and other affected browsers.
 - For Safari to show Heal’s page, Heal’s Safari domain rules must also cover the domain — Apple’s classifier data is not exposed to the Safari extension, so Heal still needs its own Safari domain coverage.
 - **SAFARI-PERMISSION-ALL-1** + **SAFARI-DNR-CAPACITY-FULL-1** (16 July 2026) prove that a temporary full static ruleset of **76,743** domain-specific DNR rules (including `example.com`), paired with one temporary `<all_urls>` website-access permission, can load and redirect correctly on a physical iPhone (start/middle/end sampling; normal + Private; unrelated sites accessible; no runtime degradation observed during the test). Temporary third-party domains and generated capacity rules were removed before commit.
-- Production domain-list productization remains open: permanent hosts-file importer; licensing and attribution notices; product generator design for `<all_urls>`; snapshot/version/hash tracking; onboarding and App Store explanation for broad website access; policy for local verified additions and false positives; plus remote rules, App Review, and Universal Links vs custom schemes.
+- Production domain-list productization remains open: permanent hosts-file importer; licensing and attribution notices; product generator design for `<all_urls>`; snapshot/version/hash tracking; onboarding and App Store explanation for broad website access; policy for local verified additions and false positives; periodic cleanup and revalidation (grace-period removal of inactive domains, no immediate removal for temporary downtime, ownership/category drift, parked/redirect/duplicate/malformed/stale-subdomain review, allowlist handling); plus remote rules, App Review, and Universal Links vs custom schemes. List-quality cleanup was not part of the capacity spike.

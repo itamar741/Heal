@@ -377,7 +377,18 @@ Capacity and broad-permission feasibility are proven for this spike only. Produc
 - a product generator design for `<all_urls>`;
 - snapshot / version / hash tracking;
 - onboarding and App Store explanation for broad website access;
-- a policy for local verified additions and false positives.
+- a policy for local verified additions and false positives;
+- periodic list cleanup and revalidation for production maintenance.
+
+Production list maintenance should assume:
+
+- inactive or non-resolving domains may be removed after a defined grace period;
+- temporary downtime alone must not immediately remove a domain;
+- domains can change ownership or content category, creating false positives;
+- parked domains, redirects, duplicates, malformed entries, and stale subdomains should be reviewed;
+- production use should include snapshot/version tracking, periodic validation, and allowlist handling.
+
+This cleanup was **not** performed during the capacity spike because the spike tested Safari rule capacity, not list quality.
 
 ---
 
@@ -424,7 +435,7 @@ Capacity and broad-permission feasibility are proven for this spike only. Produc
 - Long-term production persistence guarantees
 - Dedicated stale-marker device test older than five minutes
 - Complete console verification of every outcome button during Milestone K
-- Production Safari domain-list productization (importer, licensing/attribution, `<all_urls>` generator design, snapshot/hash tracking, onboarding/App Store explanation, false-positive policy)
+- Production Safari domain-list productization (importer, licensing/attribution, `<all_urls>` generator design, snapshot/hash tracking, onboarding/App Store explanation, false-positive policy, periodic cleanup/revalidation)
 - Automatic adult-category blocking at production scale
 - Remote DNR rule updates
 
