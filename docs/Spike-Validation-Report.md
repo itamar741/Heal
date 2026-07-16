@@ -436,6 +436,43 @@ Tested hostnames are not recorded. Updates currently require a new app build (no
 
 ---
 
+## Safari Extension onboarding foundation (16 July 2026)
+
+| Field | Value |
+|-------|-------|
+| Branch | `feat/safari-extension-onboarding-foundation` |
+| Feature | Product Safari Extension enablement loop via public iOS 26.2+ SafariServices APIs |
+| Classification | **SAFARI-ONBOARDING-FOUNDATION-1** |
+| Device | Physical iPhone |
+| APIs | `SFSafariExtensionManager.stateOfExtension(withIdentifier:)`; `SFSafariExtensionState.isEnabled`; `SFSafariSettings.openExtensionsSettings(forIdentifiers:)` |
+| Extension ID | `com.itamar.Heal.HealSafariExtension` |
+
+### Physical-device evidence
+
+| Case | Result |
+|------|--------|
+| Extension off | Heal reported **disabled** |
+| Open Safari Extension Settings | Opened Heal’s extension detail directly |
+| Enable / disable, then return to Heal | Status refreshed automatically on foreground (`scenePhase` active) |
+| Remove All Websites permission while extension remains on | Heal still reported **enabled** |
+| Disable Private Browsing while normal enablement remains on | Heal still reported **enabled** |
+| System Website Filtering enable / disable | Continued to work |
+
+No unexpected behavior observed during these checks.
+
+### Product conclusions
+
+1. `isEnabled` proves **only** that the Safari Web Extension is enabled.
+2. It does **not** prove Always Allow on Every Website (All Websites) permission or Private Browsing enablement.
+3. **Required setup order:** complete Safari extension setup (enable, Always Allow on Every Website, Private Browsing) **before** enabling System Website Filtering.
+4. Automatic foreground refresh on appear and when returning to the app is sufficient; a manual Refresh control is not required.
+
+### Device observation — greyed Safari extension settings
+
+On the tested device, Safari extension settings were **greyed out** while System Website Filtering was active. This is a **physical-device observation**, not a claimed public API guarantee. Product onboarding should still instruct users to finish Safari extension setup before enabling System Website Filtering.
+
+---
+
 ## Final Feasibility Conclusion
 
 **GO with constraints**
@@ -462,6 +499,7 @@ Tested hostnames are not recorded. Updates currently require a new app build (no
 - Safari broad website-access permission model (**SAFARI-PERMISSION-ALL-1**, 16 July 2026)
 - Safari full static DNR capacity (**SAFARI-DNR-CAPACITY-FULL-1**, 16 July 2026; 76,743 rules including `example.com`)
 - Production Safari domain list from verified-license sources (**SAFARI-DOMAIN-LIST-PROD-1**, 16 July 2026; 63,311 rules)
+- Safari Extension onboarding foundation: enablement query + open extension settings (**SAFARI-ONBOARDING-FOUNDATION-1**, 16 July 2026)
 
 ### Architecture conclusion (coexistence spike)
 
