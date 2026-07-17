@@ -473,6 +473,46 @@ On the tested device, Safari extension settings were **greyed out** while System
 
 ---
 
+## Safari protection test artifact (17 July 2026)
+
+| Field | Value |
+|-------|-------|
+| Branch | `spike/safari-protection-test-artifact` |
+| Feature | Isolated path-specific Safari DNR test URL → dedicated test block page → user-tapped `heal://safe-place?source=safariProtectionTest` |
+| Classification | **SAFARI-PROTECTION-TEST-ARTIFACT-1** |
+| Device | Physical iPhone |
+| Test URL | `https://example.com/heal-safari-protection-test` |
+| DNR `urlFilter` | `\|https://example.com/heal-safari-protection-test\|` (exact anchored URL; not whole-domain) |
+| Ruleset | `heal_safari_protection_test` → `safari-protection-test-rules.json` (one `main_frame` redirect) |
+| Test page | `blocked-test.html` |
+| Deep link | `heal://safe-place?source=safariProtectionTest` (user tap only) |
+
+### Physical-device evidence
+
+| Case | Result |
+|------|--------|
+| Exact test URL | Redirected to dedicated **Safari Protection Test** page (`blocked-test.html`) |
+| `https://example.com/` | Loaded normally (unaffected) |
+| Unrelated website | Loaded normally (unaffected) |
+| Verified production-listed domain | Redirected to existing production `blocked.html` (unaffected) |
+| Test page → Open Safe Place | iOS confirmation shown; Heal opened; Safe Place displayed |
+| Unexpected behavior | None observed |
+
+Production adult-domain hostnames used for the production-block check are not recorded here.
+
+### Scope boundary for this milestone
+
+This artifact proves the extension can redirect a harmless path-specific test URL to a dedicated test page and that the user-gesture deep link still opens Heal / Safe Place.
+
+It does **not** yet:
+
+- parse the `source=safariProtectionTest` query in the app;
+- mark Safari onboarding / protection test success;
+- prove Private Browsing automatically;
+- change System Website Filtering behavior.
+
+---
+
 ## Final Feasibility Conclusion
 
 **GO with constraints**
@@ -500,6 +540,7 @@ On the tested device, Safari extension settings were **greyed out** while System
 - Safari full static DNR capacity (**SAFARI-DNR-CAPACITY-FULL-1**, 16 July 2026; 76,743 rules including `example.com`)
 - Production Safari domain list from verified-license sources (**SAFARI-DOMAIN-LIST-PROD-1**, 16 July 2026; 63,311 rules)
 - Safari Extension onboarding foundation: enablement query + open extension settings (**SAFARI-ONBOARDING-FOUNDATION-1**, 16 July 2026)
+- Safari protection test artifact: path-specific test URL → dedicated test page → Safe Place deep link (**SAFARI-PROTECTION-TEST-ARTIFACT-1**, 17 July 2026)
 
 ### Architecture conclusion (coexistence spike)
 
