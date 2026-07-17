@@ -1,0 +1,18 @@
+[
+    {
+        "id": 1,
+        "priority": 1,
+        "action": {
+            "type": "redirect",
+            "redirect": {
+                "extensionPath": "/blocked-test.html"
+            }
+        },
+        "condition": {
+            "urlFilter": "|https://example.com/heal-safari-protection-test|",
+            "resourceTypes": [
+                "main_frame"
+            ]
+        }
+    }
+]

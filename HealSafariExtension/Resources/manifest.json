@@ -26,13 +26,19 @@
                 "id": "heal_domain_blocklist",
                 "enabled": true,
                 "path": "rules.json"
+            },
+            {
+                "id": "heal_safari_protection_test",
+                "enabled": true,
+                "path": "safari-protection-test-rules.json"
             }
         ]
     },
     "web_accessible_resources": [
         {
             "resources": [
-                "blocked.html"
+                "blocked.html",
+                "blocked-test.html"
             ],
             "matches": [
                 "<all_urls>"

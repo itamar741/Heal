@@ -190,10 +190,12 @@ def update_manifest(manifest: dict[str, Any]) -> None:
         item["path"] = "rules.json"
 
     # Production permission model: one All Websites grant; DNR rules scope blocking.
+    # Preserve both block pages so regeneration does not drop the Safari
+    # protection test page (redirected by a separate static ruleset).
     manifest["host_permissions"] = list(HOST_PERMISSIONS)
     manifest["web_accessible_resources"] = [
         {
-            "resources": ["blocked.html"],
+            "resources": ["blocked.html", "blocked-test.html"],
             "matches": list(HOST_PERMISSIONS),
         }
     ]
