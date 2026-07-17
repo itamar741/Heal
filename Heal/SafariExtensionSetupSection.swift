@@ -5,6 +5,8 @@
 //  Minimal Safari Extension enablement UI for the setup flow.
 //  Verifies only whether the extension is enabled — not All Websites
 //  or Private Browsing configuration.
+//  Also hosts the functional Safari protection test control; persisted
+//  attempt/result state lives in SafariProtectionTestStore.
 //
 
 import SwiftUI
@@ -12,7 +14,9 @@ import SwiftUI
 struct SafariExtensionSetupSection: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var extensionState: SafariExtensionService.ExtensionState = .checking
+    @State private var functionalTestStatus: SafariProtectionTestStore.DisplayStatus = .idle
     @State private var actionMessage: String?
+    @State private var functionalTestActionMessage: String?
     // Local ownership is enough while this section owns only local display state.
     // If Safari extension status later joins a shared multi-step onboarding flow,
     // move that flow state into a dedicated onboarding model/coordinator and keep
@@ -75,6 +79,51 @@ struct SafariExtensionSetupSection: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(extensionState == .checking)
+
+            Divider()
+
+            Text("Functional test")
+                .font(.subheadline.weight(.semibold))
+
+            Text(functionalTestStatusLabel)
+                .font(.footnote)
+                .foregroundStyle(functionalTestStatusColor)
+
+            Text(
+                "Heal opens the test link in your default browser. "
+                    + "The functional test can pass only when you complete that URL in Safari, "
+                    + "where Heal’s Safari extension runs. "
+                    + "If another browser opens, return here and open the same test URL "
+                    + "manually in Safari within the five-minute test window. "
+                    + "A past pass means the test succeeded earlier — "
+                    + "it does not prove Safari protection is still configured right now."
+            )
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+
+            if functionalTestStatus == .waiting {
+                Text(SafariProtectionTestOpener.testURL.absoluteString)
+                    .font(.footnote.monospaced())
+                    .textSelection(.enabled)
+                    .foregroundStyle(.primary)
+            }
+
+            if let functionalTestActionMessage {
+                Text(functionalTestActionMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+
+            Button {
+                Task {
+                    await startFunctionalTest()
+                }
+            } label: {
+                Text("Test Safari Protection")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(extensionState != .enabled)
         }
         .onAppear {
             Task {
@@ -122,10 +171,41 @@ struct SafariExtensionSetupSection: View {
         }
     }
 
+    private var functionalTestStatusLabel: String {
+        switch functionalTestStatus {
+        case .idle:
+            return "Functional test: not tested"
+        case .waiting:
+            return "Functional test: waiting for Safari return"
+        case .passed:
+            return "Functional test: passed previously"
+        case .expired:
+            return "Functional test: test expired"
+        }
+    }
+
+    private var functionalTestStatusColor: Color {
+        switch functionalTestStatus {
+        case .idle:
+            return .secondary
+        case .waiting:
+            return .orange
+        case .passed:
+            return .green
+        case .expired:
+            return .orange
+        }
+    }
+
+    private func refreshFunctionalTestStatus() {
+        functionalTestStatus = SafariProtectionTestStore.displayStatus()
+    }
+
     private func refresh() async {
         extensionState = .checking
         let state = await service.fetchState()
         extensionState = state
+        refreshFunctionalTestStatus()
 
         if case .error(let message) = state {
             actionMessage = message
@@ -140,6 +220,18 @@ struct SafariExtensionSetupSection: View {
             actionMessage = "Opened Safari Extension Settings. Enable the extension, then return here."
         } catch {
             actionMessage = "Could not open Safari Extension Settings: \(error.localizedDescription)"
+        }
+    }
+
+    private func startFunctionalTest() async {
+        functionalTestActionMessage = nil
+
+        do {
+            try await SafariProtectionTestOpener.startAndOpen()
+            refreshFunctionalTestStatus()
+        } catch {
+            refreshFunctionalTestStatus()
+            functionalTestActionMessage = error.localizedDescription
         }
     }
 }
