@@ -117,43 +117,19 @@ Do not weaken the rule to stop after each milestone.
 
 
 
-## Strict Scope Rules For This Spike
+## Scope Control
 
-The spike must stay narrow.
+The approved milestone prompt is the current source of truth for scope.
 
-Do not add features early.
+Do not continue to the next milestone, add unrequested product features, or modify
+sensitive project areas unless the current prompt explicitly allows it.
 
-### Current Milestone Order
+If implementation requires work outside the approved scope, stop and request approval
+before editing.
 
-1. Xcode shell + targets
-2. Entitlements/signing
-3. Family Controls authorization
-4. One-app selection
-5. Shield application
-6. Shield Configuration extension
-7. App Group handoff
-8. Shield Action + `openParentalControlsApp`
-9. Safe Place routing
-10. Safe Place placeholder UI
-11. Minimal hardening and test report
-
-
-
-### Do Not Add Early
-
-- Backend
-- Accounts
-- Analytics
-- Subscriptions
-- Social/community features
-- Recommendation engine
-- Notifications
-- Universal Links
-- DeviceActivity
-- App categories
-- Web domains
-- Full production UI
-- Large video library
+For architecture-sensitive changes, include ownership and lifecycle, data flow,
+alternatives considered, architectural risks, and the required review level described
+in [AI Coding Guardrails](AI-Coding-Guardrails.md).
 
 ---
 
