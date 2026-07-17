@@ -156,8 +156,37 @@ Stop and ask before continuing if:
 - a milestone requires unexpectedly broad file changes
 - a temporary workaround affects product architecture
 - responsibility placement is unclear
+- a service and a view both store writable copies of the same state
+- a local display state is treated as persistent product state
+- multiple views independently refresh the same mutable shared service
+- a callback, foreground refresh, and onAppear can race or duplicate work
+- an old error can remain visible after successful state recovery
 
+## Review escalation
 
+After implementation, choose the review depth according to risk.
+
+A focused Change Report and diff are sufficient only for small, isolated,
+reversible changes.
+
+Request a full review bundle before commit when the change includes:
+
+- state or persistence
+- services or stores
+- URL routing or navigation
+- lifecycle or concurrency
+- interaction between multiple views
+- shared ownership
+- a meaningful architectural decision
+
+The bundle must contain branch/status, the exact diff, full changed files, and
+relevant context files.
+
+Do not commit architecture-sensitive changes until:
+
+1. Ownership and data flow were reviewed.
+2. Duplicate sources of truth and lifecycle risks were checked.
+3. Required device testing passed.
 
 ## Completion rule
 
