@@ -234,6 +234,8 @@ final class SpikeAppState {
 
     /// Routes only the explicit Safari extension deep link `heal://safe-place`.
     /// Unknown or malformed URLs are ignored and do not open Safe Place.
+    /// When `source=safariProtectionTest` is present, a valid pending functional
+    /// test is marked passed via SafariProtectionTestStore; Safe Place still opens.
     func handleIncomingURL(_ url: URL) {
         guard url.scheme?.lowercased() == "heal" else {
             return
@@ -253,6 +255,10 @@ final class SpikeAppState {
             return
         }
 
+        if isSafariProtectionTestSource(url) {
+            SafariProtectionTestStore.markPassedIfPendingValid()
+        }
+
         launchContext = LaunchContext(
             openedFromShieldHandoff: false,
             sessionId: nil,
@@ -261,7 +267,24 @@ final class SpikeAppState {
         pendingSafePlaceEntry = true
     }
 
+    private func isSafariProtectionTestSource(_ url: URL) -> Bool {
+        guard let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else {
+            return false
+        }
+
+        return items.contains {
+            $0.name == "source" && $0.value == "safariProtectionTest"
+        }
+    }
+
+    /// Consumes the Shield App Group handoff marker only for Safe Place entries
+    /// that originated from shield handoff. Safari deep-link entries must not
+    /// clear Shield-owned App Group state.
     func consumeHandoffMarkerAfterPresentation() {
+        guard launchContext.openedFromShieldHandoff else {
+            return
+        }
+
         do {
             try HandoffStore.consumeMarker()
             handoffConsumptionMessage = "Handoff marker consumed."

@@ -511,6 +511,65 @@ It does **not** yet:
 - prove Private Browsing automatically;
 - change System Website Filtering behavior.
 
+Follow-up app-side validation is recorded as **SAFARI-PROTECTION-FUNCTIONAL-VALIDATION-1** below.
+
+---
+
+## Safari protection functional validation (17 July 2026)
+
+| Field | Value |
+|-------|-------|
+| Branch | `feat/safari-protection-functional-validation` |
+| Feature | App-side pending-test store + setup UI + query-marker validation for the existing Safari protection test artifact |
+| Classification | **SAFARI-PROTECTION-FUNCTIONAL-VALIDATION-1** |
+| Device | Physical iPhone |
+| Persistent store | `SafariProtectionTestStore` on `UserDefaults.standard` (app-only; not App Group) |
+| TTL | **5 minutes** for a pending attempt |
+| Query marker | `heal://safe-place?source=safariProtectionTest` |
+| Opener | `UIApplication.shared.open` of the exact test URL via the system default URL handler (not guaranteed to be Safari) |
+
+### Physical-device evidence
+
+| Case | Result |
+|------|--------|
+| Safari as default browser | Test → waiting → dedicated Safari test page → Open Safe Place → Heal Safe Place → setup UI showed **passed previously** |
+| Other default browser | Other browser opened; Heal stayed **waiting**; exact test URL shown and selectable; manual open of that URL in Safari within TTL completed the test successfully |
+| Production blocking isolation | Production-blocked Safari domain still opened Safe Place; normal `heal://safe-place` did **not** create a new functional-test pass |
+| Expired attempt | Test deep link after TTL still opened Safe Place; attempt **not** marked passed; UI reported **expired** |
+| Cold start | Force-quit while pending; Safari return within TTL reopened Heal, showed Safe Place, and persisted the functional-test pass |
+| Shield regression (standalone) | Custom Heal shield appeared; Safe Place button opened Heal; Safe Place appeared; Shield handoff consumed normally |
+| Unexpected product behavior | None observed |
+
+Production adult-domain hostnames used for production-block checks are not recorded here.
+
+### Ownership and routing conclusions
+
+1. `SafariProtectionTestStore` is the only persistent source of truth for the functional-test attempt/result.
+2. `SpikeAppState` routes `heal://safe-place` and may call the store; it does not own duplicate writable test-session state.
+3. Query-marker validation marks passed only when a non-expired pending attempt exists.
+4. Normal production `heal://safe-place` callbacks open Safe Place and never mark the Safari functional test passed.
+5. Safe Place still opens for valid test, expired test, and unrelated accepted Safe Place callbacks.
+6. Safari deep-link Safe Place entry does **not** consume Shield App Group handoff state (`openedFromShieldHandoff` guard).
+7. A previous pass is **historical validation**, not proof that Safari protection is still currently configured.
+
+### Default-browser limitation
+
+Opening the HTTPS test URL uses the system default URL handler. If another browser opens, the user must complete the same test URL in Safari (where Heal’s Safari Web Extension runs) within the five-minute window. Heal does not detect which browser opened.
+
+### Device observation — generic shield under debugger
+
+While the main app was attached to the Xcode debugger, the device showed Apple’s generic shield with an OK button. After stopping the debugger and launching the installed app normally, the custom Heal shield appeared and Shield → Safe Place worked. This is a **device/debug observation**, not a documented platform guarantee.
+
+### Scope boundary for this milestone
+
+This milestone validates end-to-end functional Safari protection in normal Safari using the existing test artifact. It does **not**:
+
+- prove Private Browsing automatically;
+- change System Website Filtering;
+- change production domain-list / DNR coverage;
+- claim the opener always launches Safari;
+- treat a past pass as live configuration proof.
+
 ---
 
 ## Final Feasibility Conclusion
@@ -541,6 +600,7 @@ It does **not** yet:
 - Production Safari domain list from verified-license sources (**SAFARI-DOMAIN-LIST-PROD-1**, 16 July 2026; 63,311 rules)
 - Safari Extension onboarding foundation: enablement query + open extension settings (**SAFARI-ONBOARDING-FOUNDATION-1**, 16 July 2026)
 - Safari protection test artifact: path-specific test URL → dedicated test page → Safe Place deep link (**SAFARI-PROTECTION-TEST-ARTIFACT-1**, 17 July 2026)
+- Safari protection functional validation: pending store, query marker, default-browser fallback, cold start, Shield ownership guard (**SAFARI-PROTECTION-FUNCTIONAL-VALIDATION-1**, 17 July 2026)
 
 ### Architecture conclusion (coexistence spike)
 
