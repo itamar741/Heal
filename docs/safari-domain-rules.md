@@ -108,13 +108,27 @@ Production generation updates only domain-derived portions of:
 
 - `HealSafariExtension/Resources/manifest.json`
   - `host_permissions` → `["<all_urls>"]`
-  - `web_accessible_resources` matches for `blocked.html` → `["<all_urls>"]`
-  - static ruleset `id` → `heal_domain_blocklist` (stable product name)
+  - `web_accessible_resources` preserves both:
+    - `blocked.html`
+    - `blocked-test.html`
+  - production static ruleset:
+    - `id` → `heal_domain_blocklist`
+    - `path` → `rules.json`
 - `HealSafariExtension/Resources/rules.json`
-  - one domain-specific DNR redirect rule per domain
+  - one domain-specific DNR redirect rule per production domain
   - no catch-all DNR rule
 
-Unrelated manifest fields remain unchanged.
+The manifest also contains a separate, non-generated functional-test ruleset:
+
+- `id`: `heal_safari_protection_test`
+- `path`: `safari-protection-test-rules.json`
+- exact test URL:
+  `https://example.com/heal-safari-protection-test`
+- redirect:
+  `/blocked-test.html`
+
+The generator must preserve the dedicated test ruleset and both web-accessible
+block pages. It must not merge the test rule into the production domain list.
 
 ### All Websites permission versus domain-specific blocking
 
@@ -165,6 +179,13 @@ Production list maintenance should include periodic cleanup and revalidation:
 ## Review before commit
 
 Always review the generated `manifest.json` and `rules.json` diffs (and aggregate importer/generator counts) before committing. Do not treat generator output as automatically trusted. Do not paste adult hostnames into docs, commit messages, or issue text.
+
+When changing the generator, verify that regeneration preserves:
+
+- `heal_safari_protection_test`
+- `safari-protection-test-rules.json`
+- `blocked-test.html`
+- the existing production ruleset and production rule count
 
 ## Third-party notices
 
