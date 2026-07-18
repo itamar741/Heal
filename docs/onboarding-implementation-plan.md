@@ -100,7 +100,8 @@ Safe Place must interrupt every other root flow. When dismissed, the app returns
 | Data | Persist? | Owner / location | Notes |
 |------|----------|------------------|-------|
 | `hasCompletedOnboarding` | Yes (M1) | `OnboardingProgress` / app-local `UserDefaults` | Launch gate |
-| Writable `currentStep` | **No** | — | Visible step is derived later from persisted progress + live technical state |
+| `hasAcknowledgedIntroduction` | Yes (M2) | `OnboardingProgress` / app-local `UserDefaults` | Explanation-step acknowledgement only |
+| Writable `currentStep` | **No** | — | Visible step is derived from persisted progress + live technical state |
 | Manual All Websites / Private Browsing confirms | Later | `OnboardingProgress` | Not detectable |
 | SWF consent / skip choice | Later | `OnboardingProgress` | Actual on/off remains ManagedSettings via service |
 | Functional test timestamps | Already | `SafariProtectionTestStore` | Historical pass ≠ live proof |
@@ -108,12 +109,22 @@ Safe Place must interrupt every other root flow. When dismissed, the app returns
 | Screen Time auth | System | Refresh live | |
 | System Website Filtering on/off | System (ManagedSettings) | `SystemWebFilteringService` | |
 
-### Derived visible step (later milestones)
+### Derived visible step
 
-Do **not** persist a writable `currentStep`. The visible onboarding step must eventually be derived from:
+Do **not** persist a writable `currentStep`. The visible onboarding step is derived from:
 
-- persisted onboarding progress flags (completion, later manual confirms / consent), plus
+- persisted onboarding progress flags (completion, introduction acknowledgement; later manual confirms / consent), plus
 - live technical state from existing services/stores.
+
+#### M2 derived-step decision
+
+While `hasCompletedOnboarding == false`, `OnboardingFlowView` derives the visible step as:
+
+1. If `hasAcknowledgedIntroduction == false` → explanation step
+2. Else if Screen Time authorization is not approved (`SpikeAppState.isAuthorizationApproved == false`) → Screen Time authorization step
+3. Else → temporary M2 checkpoint (“Screen Time ready / Safari setup next”)
+
+Approving Screen Time does **not** set `hasCompletedOnboarding`. Full onboarding remains incomplete until a later milestone (or the temporary test complete control).
 
 ---
 
@@ -123,7 +134,7 @@ Do **not** persist a writable `currentStep`. The visible onboarding step must ev
 - URL parsing, query-marker functional-test pass marking, and shield handoff consume semantics stay unchanged.
 - Safe Place opens over onboarding and over the post-onboarding root.
 - Dismiss returns to whatever root gate applies next (incomplete onboarding → shell; complete → post-onboarding flow).
-- Because M1 does not persist `currentStep`, resume is simply “back to the onboarding shell,” which is correct for the foundation milestone.
+- Because onboarding does not persist `currentStep`, resume returns to the onboarding shell and re-derives the visible step from persisted flags + live authorization. Correct for M1/M2.
 
 ---
 
@@ -183,9 +194,18 @@ Each milestone stops before commit, requires device testing, and avoids final vi
 
 ### M2
 
-- Explanation continues into Screen Time step
-- Approve / deny / revoke auth behavior
-- Incomplete users cannot reach post-onboarding root without completion policy defined for that milestone
+1. Fresh/reset state opens the explanation step
+2. Continue advances to the Screen Time step
+3. Introduction acknowledgement survives force-quit and relaunch
+4. Authorization request opens the Apple authorization flow
+5. Approval automatically advances to the M2 checkpoint
+6. Denial or failure remains recoverable and allows retry
+7. Authorization state remains approved after relaunch
+8. Revoking authorization returns incomplete onboarding to the Screen Time step
+9. Safe Place interrupts the explanation step and the Screen Time step
+10. Dismissing Safe Place returns to the correct derived onboarding step
+11. Temporary completion/reset controls still behave as documented
+12. Existing app-selection, Safari-test, and shield paths remain reachable after temporary full completion
 
 ### M3
 
@@ -240,3 +260,31 @@ Each milestone stops before commit, requires device testing, and avoids final vi
 - **Mutates:** temporary M1 completion control in `OnboardingFlowView` calls `markOnboardingCompleted()`. `ContentView` does not inject overlays, insets, or reset controls into the post-onboarding root.
 - **M1 incomplete-state reset procedure:** delete and reinstall the app (clears app-local `UserDefaults`, including `onboarding.hasCompletedOnboarding`). Do not add a post-onboarding Reset control that alters `AppSelectionView` / `SetupView` layout.
 - **Persistence:** model methods write app-local `UserDefaults`; in-memory property is the single observable reflection of that value, not a second independent store.
+
+### M2 ownership and implementation note
+
+- **`OnboardingProgress` owns only:**
+  - `hasAcknowledgedIntroduction` (`onboarding.hasAcknowledgedIntroduction`)
+  - `hasCompletedOnboarding` (`onboarding.hasCompletedOnboarding`)
+- **Does not own:** Screen Time authorization status, Safari flags, functional-test state, System Website Filtering state, or a writable `currentStep`.
+- **Screen Time ownership / data flow:**
+
+```text
+System authorization
+    ↓ refresh/request
+AuthorizationService / SpikeAppState
+    ↓ observable live status
+OnboardingFlowView
+    ↓ derived visible step
+Explanation | Screen Time | M2 pending state
+```
+
+- **Views trigger, do not persist:** Explanation Continue calls `OnboardingProgress.acknowledgeIntroduction()`. Screen Time Enable/Retry calls `SpikeAppState.requestAuthorization()` (existing path → `AuthorizationService`). No direct `UserDefaults` or FamilyControls writes from views.
+- **Relaunch:** Introduction acknowledgement is reloaded from `UserDefaults` in `OnboardingProgress.init`. Authorization is refreshed via existing `SpikeAppState.refreshSystemState()` / `refreshAuthorizationStatus()` — never from a persisted auth Boolean in onboarding.
+- **Revocation while incomplete:** If authorization is later not approved, derived step returns to Screen Time. No stale onboarding auth flag can override system state.
+- **Temporary M2 checkpoint:** Shown when introduction is acknowledged and live auth is approved. Full onboarding stays incomplete (`hasCompletedOnboarding` unchanged).
+- **Temporary test controls (onboarding shell only):**
+  - `Mark Onboarding Complete (Temporary Test)` → `markOnboardingCompleted()` for post-onboarding regression routing.
+  - `Reset Onboarding Progress (Temporary Test)` → `resetTemporaryTestingState()`, which clears **both** OnboardingProgress flags (introduction + completion). Does **not** revoke or change Screen Time authorization.
+- **Reuse vs duplication:** Auth request/refresh semantics remain in `SpikeAppState` / `AuthorizationService`. Status labels and request-button presentation are duplicated locally in `OnboardingFlowView` rather than extracting from `SetupView`, to avoid a broad SetupView refactor in M2. `SetupView` remains the post-onboarding / incomplete-auth root UI.
+- **Remaining M3 work:** Safari extension enablement, open settings, manual All Websites / Private Browsing confirms; replace the temporary M2 checkpoint with the Safari step sequence.
