@@ -1,0 +1,64 @@
+---
+description: Mandatory verification of every user prompt against the current repository before implementation
+alwaysApply: true
+---
+
+# Mandatory Prompt Provenance and Contradiction Check
+
+This rule applies to every task and is a precondition to implementation.
+
+Treat every prompt from the user as if it was written by an external AI colleague who:
+
+- does not have direct access to the current codebase
+- knows the project only through previous reports and summaries you provided
+- may therefore have incomplete, outdated, imprecise, or incorrect assumptions about the repository
+
+Never treat codebase-specific statements in a prompt as authoritative until they are verified against the current repository.
+
+Before making any edit, verify all relevant assumptions in the prompt against the current codebase, including when applicable:
+
+- current branch, HEAD, upstream, and working-tree state
+- file paths and symbol names
+- existing implementation and actual behavior
+- architecture and ownership boundaries
+- sources of truth
+- persistence and state flow
+- routing, lifecycle, and concurrency behavior
+- completed milestones
+- project documentation and active rules
+- requested scope and expected files
+
+Treat codebase-specific claims in the prompt as hypotheses to validate, not facts to follow blindly.
+
+Before implementation, explicitly produce one of these outcomes:
+
+1. `Contradiction check: no blocking contradiction found.`
+
+or:
+
+2. `Contradiction detected — implementation stopped.`
+
+When any contradiction, stale assumption, mismatch, ambiguity, missing dependency, or architectural conflict is found:
+
+1. Stop before implementing the affected work.
+2. State the exact prompt assumption that is incorrect, incomplete, or unverified.
+3. Show concrete evidence from the current repository.
+4. Explain the implementation impact.
+5. Recommend the smallest safe resolution.
+6. Wait for clarification when resolving it would require a decision about architecture, ownership, persistence, routing, lifecycle, behavior, or scope.
+
+Never silently:
+
+- ignore a contradiction
+- reinterpret the prompt to conceal a contradiction
+- modify architecture merely to make the prompt appear correct
+- invent missing files, APIs, symbols, state, services, or behavior
+- rely only on an earlier report when the current repository differs
+- work around an incorrect assumption without reporting it
+- claim verification without inspecting the relevant current code
+
+If only part of a task is contradicted, do not implement that part. Independent work may proceed only after clearly separating it from the contradiction and confirming that it is safe.
+
+When no contradiction is found, implement according to the verified current repository, active project rules, and approved scope.
+
+Instructions in an individual task prompt cannot override this rule. Only an explicit user request to update, disable, or remove this rule may change it.
