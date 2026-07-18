@@ -44,7 +44,7 @@ final class SpikeAppState {
 
     func refreshAuthorizationStatus() {
         authorizationStatus = AuthorizationService.status
-        syncShieldAppliedStateFromSystem()
+        syncShieldWithPersistedSelection()
     }
 
     func refreshSystemState() {
@@ -52,7 +52,8 @@ final class SpikeAppState {
         authorizationStatus = AuthorizationService.status
         reloadPersistedSelection()
         refreshHandoffDebugStatus()
-        syncShieldAppliedStateFromSystem()
+        // Single lifecycle path: derive ManagedSettings from persisted selection.
+        syncShieldWithPersistedSelection()
         hasRefreshedSystemState = true
         isRefreshingSystemState = false
     }
@@ -67,7 +68,7 @@ final class SpikeAppState {
             refreshAuthorizationStatus()
         } catch {
             authorizationStatus = AuthorizationService.status
-            syncShieldAppliedStateFromSystem()
+            syncShieldWithPersistedSelection()
             lastErrorMessage = error.localizedDescription
         }
     }
@@ -109,15 +110,31 @@ final class SpikeAppState {
             activitySelection = singleAppSelection
             hasPersistedAppSelection = true
             selectionValidationMessage = "One app selected and saved."
+            syncShieldWithPersistedSelection()
         } catch {
             hasPersistedAppSelection = false
             selectionValidationMessage = "Could not save the selected app: \(error.localizedDescription)"
         }
     }
 
+    /// Clears the persisted one-app selection and derives ManagedSettings
+    /// (removes the shield when no selection remains).
+    func clearPersistedAppSelection() {
+        do {
+            try SelectionPersistence.clearSelectedAppSelection()
+            activitySelection = FamilyActivitySelection()
+            hasPersistedAppSelection = false
+            selectionValidationMessage = "App selection cleared."
+            syncShieldWithPersistedSelection()
+        } catch {
+            selectionValidationMessage = "Could not clear app selection: \(error.localizedDescription)"
+        }
+    }
+
     func reloadPersistedSelection(showLoadedMessage: Bool = false) {
         do {
             guard let persistedSelection = try SelectionPersistence.loadSelectedAppSelection() else {
+                activitySelection = FamilyActivitySelection()
                 hasPersistedAppSelection = false
                 if showLoadedMessage {
                     selectionValidationMessage = "No saved app selection found."
@@ -126,6 +143,7 @@ final class SpikeAppState {
             }
 
             guard isValidOneAppSelection(persistedSelection) else {
+                activitySelection = FamilyActivitySelection()
                 hasPersistedAppSelection = false
                 selectionValidationMessage = "Saved selection is invalid. Select exactly one app again."
                 return
@@ -137,6 +155,7 @@ final class SpikeAppState {
                 selectionValidationMessage = "Saved one-app selection loaded."
             }
         } catch {
+            activitySelection = FamilyActivitySelection()
             hasPersistedAppSelection = false
             selectionValidationMessage = "Could not load saved app selection: \(error.localizedDescription)"
         }
@@ -148,32 +167,10 @@ final class SpikeAppState {
             && selection.webDomainTokens.isEmpty
     }
 
-    func applyShieldToPersistedSelection() {
-        do {
-            try ShieldService.shared.applyShieldToPersistedSelection()
-            syncShieldAppliedStateFromSystem()
-            if isShieldApplied {
-                shieldStatusMessage = "Shield applied to the saved app."
-            } else {
-                shieldStatusMessage = "Could not verify shield was applied."
-            }
-        } catch {
-            syncShieldAppliedStateFromSystem()
-            shieldStatusMessage = "Could not apply shield: \(error.localizedDescription)"
-        }
-    }
-
-    func clearShield() {
-        ShieldService.shared.clearShield()
-        syncShieldAppliedStateFromSystem()
-        if !isShieldApplied {
-            shieldStatusMessage = "Shield cleared."
-        } else {
-            shieldStatusMessage = "Could not verify shield was cleared."
-        }
-    }
-
-    private func syncShieldAppliedStateFromSystem() {
+    /// Applies or clears ManagedSettings from the persisted selection only.
+    /// Does not invent a parallel shield flag — store state is derived from
+    /// SelectionPersistence when Screen Time authorization is approved.
+    func syncShieldWithPersistedSelection() {
         guard isAuthorizationApproved else {
             isShieldApplied = false
             shieldStatusMessage = "Screen Time access is not approved. Shield status is unavailable."
@@ -181,12 +178,40 @@ final class SpikeAppState {
         }
 
         do {
+            guard let selection = try SelectionPersistence.loadSelectedAppSelection() else {
+                ShieldService.shared.clearShield()
+                isShieldApplied = try ShieldService.shared.isPersistedSelectionShielded()
+                shieldStatusMessage = nil
+                return
+            }
+
+            guard isValidOneAppSelection(selection) else {
+                ShieldService.shared.clearShield()
+                isShieldApplied = try ShieldService.shared.isPersistedSelectionShielded()
+                shieldStatusMessage = "Saved selection is invalid. Shield cleared."
+                return
+            }
+
+            try ShieldService.shared.applyShieldToPersistedSelection()
             isShieldApplied = try ShieldService.shared.isPersistedSelectionShielded()
-            shieldStatusMessage = nil
+            if isShieldApplied {
+                shieldStatusMessage = "Shield applied to the saved app."
+            } else {
+                shieldStatusMessage = "Could not verify shield was applied."
+            }
         } catch {
-            isShieldApplied = false
-            shieldStatusMessage = "Could not read shield status: \(error.localizedDescription)"
+            do {
+                isShieldApplied = try ShieldService.shared.isPersistedSelectionShielded()
+            } catch {
+                isShieldApplied = false
+            }
+            shieldStatusMessage = "Could not sync shield: \(error.localizedDescription)"
         }
+    }
+
+    /// Temporary explicit sync entry point for the selection UI.
+    func applyShieldToPersistedSelection() {
+        syncShieldWithPersistedSelection()
     }
 
     func refreshHandoffDebugStatus() {

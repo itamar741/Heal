@@ -29,8 +29,12 @@ struct AppSelectionView: View {
             Text("Choose One App")
                 .font(.largeTitle.bold())
 
-            Text("For this spike, select exactly one app. Categories, web domains, and multiple apps are not accepted yet.")
-                .foregroundStyle(.secondary)
+            Text(
+                "Select exactly one app. Categories, web domains, and multiple apps "
+                    + "are not accepted. Saving persists the selection and applies a "
+                    + "shield when Screen Time access is approved."
+            )
+            .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Selection status")
@@ -61,6 +65,15 @@ struct AppSelectionView: View {
             }
             .buttonStyle(.bordered)
 
+            Button {
+                appState.clearPersistedAppSelection()
+            } label: {
+                Text("Clear Selection")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!appState.hasPersistedAppSelection)
+
             Divider()
 
             VStack(alignment: .leading, spacing: 8) {
@@ -76,22 +89,12 @@ struct AppSelectionView: View {
                     .foregroundStyle(appState.isShieldApplied ? .green : .secondary)
             }
 
-            Button {
-                appState.applyShieldToPersistedSelection()
-            } label: {
-                Text("Apply Shield")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!appState.hasPersistedAppSelection)
-
-            Button {
-                appState.clearShield()
-            } label: {
-                Text("Clear Shield")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
+            Text(
+                "The shield is derived from the saved selection. "
+                    + "Saving an app applies the shield; clearing the selection removes it."
+            )
+            .font(.footnote)
+            .foregroundStyle(.secondary)
 
             Divider()
 
@@ -132,6 +135,7 @@ struct AppSelectionView: View {
         )
         .onAppear {
             appState.reloadPersistedSelection()
+            appState.syncShieldWithPersistedSelection()
         }
     }
 }
