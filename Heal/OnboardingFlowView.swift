@@ -2,12 +2,13 @@
 //  OnboardingFlowView.swift
 //  Heal
 //
-//  M4 onboarding shell: explanation, Screen Time, Safari enablement, manual
-//  All Websites / Private Browsing confirmations, and the Safari functional
-//  protection test. Visible step is derived from OnboardingProgress flags,
-//  live SpikeAppState authorization, live Safari extension enablement, and
-//  SafariProtectionTestStore status. System Website Filtering (M5) is not
-//  implemented. Full onboarding completion is not set by a test pass.
+//  M5 onboarding shell: explanation, Screen Time, Safari enablement, manual
+//  All Websites / Private Browsing confirmations, Safari functional protection
+//  test, and optional System Website Filtering consent. Visible step is derived
+//  from OnboardingProgress flags, live SpikeAppState authorization, live Safari
+//  extension enablement, SafariProtectionTestStore status, and live
+//  SystemWebFilteringService state for presentation only. Full onboarding
+//  completion is not set by M5.
 //
 
 import SwiftUI
@@ -18,6 +19,9 @@ struct OnboardingFlowView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var safariEnablement = SafariExtensionEnablementModel()
     @State private var protectionTestStatus = SafariProtectionTestStore.displayStatus()
+    /// Loaded from the live service — never assumed `.cleared` before the first read.
+    @State private var systemFilterState = SystemWebFilteringService.shared.currentState
+    @State private var systemFilterMessage: String?
 
     private enum VisibleStep: Equatable {
         case explanation
@@ -26,7 +30,8 @@ struct OnboardingFlowView: View {
         case safariAllWebsitesConfirmation
         case safariPrivateBrowsingConfirmation
         case safariProtectionTest
-        case m4Checkpoint
+        case systemWebFilteringConsent
+        case m5Checkpoint
     }
 
     private var visibleStep: VisibleStep {
@@ -48,7 +53,10 @@ struct OnboardingFlowView: View {
         if protectionTestStatus != .passed {
             return .safariProtectionTest
         }
-        return .m4Checkpoint
+        if onboarding.systemWebFilteringDecision == nil {
+            return .systemWebFilteringConsent
+        }
+        return .m5Checkpoint
     }
 
     var body: some View {
@@ -67,8 +75,10 @@ struct OnboardingFlowView: View {
                     safariPrivateBrowsingConfirmationStep
                 case .safariProtectionTest:
                     safariProtectionTestStep
-                case .m4Checkpoint:
-                    m4CheckpointStep
+                case .systemWebFilteringConsent:
+                    systemWebFilteringConsentStep
+                case .m5Checkpoint:
+                    m5CheckpointStep
                 }
             }
             .padding()
@@ -78,6 +88,7 @@ struct OnboardingFlowView: View {
             appState.refreshAuthorizationStatus()
             refreshSafariExtensionStateIfNeeded()
             refreshProtectionTestStatusIfNeeded()
+            refreshSystemFilterStateIfNeeded()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else {
@@ -85,13 +96,18 @@ struct OnboardingFlowView: View {
             }
             refreshSafariExtensionStateIfNeeded()
             refreshProtectionTestStatusIfNeeded()
+            refreshSystemFilterStateIfNeeded()
         }
         .onChange(of: visibleStep) { _, newStep in
             if newStep == .safariExtensionEnablement {
                 safariEnablement.refresh()
+                refreshSystemFilterState()
             }
             if newStep == .safariProtectionTest {
                 refreshProtectionTestStatus()
+            }
+            if newStep == .systemWebFilteringConsent || newStep == .m5Checkpoint {
+                refreshSystemFilterState()
             }
         }
     }
@@ -169,6 +185,35 @@ struct OnboardingFlowView: View {
                 model: safariEnablement,
                 refreshesWithLifecycle: false
             )
+
+            if systemFilterState == .enabled {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(
+                        "System Website Filtering is currently active. On tested "
+                            + "devices, an active filter may grey out Safari extension "
+                            + "settings and block enabling the extension. Disable the "
+                            + "filter here to recover, then enable the extension. This "
+                            + "does not change your onboarding System Website Filtering "
+                            + "decision."
+                    )
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+
+                    if let systemFilterMessage {
+                        Text(systemFilterMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Button {
+                        disableSystemWebsiteFiltering()
+                    } label: {
+                        Text("Disable System Website Filtering")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
 
             temporaryTestingControls
         }
@@ -267,24 +312,111 @@ struct OnboardingFlowView: View {
         }
     }
 
-    // MARK: - Temporary M4 checkpoint
+    // MARK: - Step 6: Optional System Website Filtering consent
 
-    private var m4CheckpointStep: some View {
+    private var systemWebFilteringConsentStep: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("Safari Protection Test Passed")
+            Text("System Website Filtering")
                 .font(.largeTitle.bold())
 
             Text(
-                "M4 checkpoint. The Safari functional protection test passed. "
-                    + "Optional System Website Filtering consent will be added in M5. "
-                    + "Full onboarding is still incomplete. A past pass does not prove "
-                    + "Safari protection is still configured right now."
+                "System Website Filtering is optional. It uses Apple’s system web "
+                    + "content filter as an additional layer beyond the Safari extension. "
+                    + "You can enable it now, skip it, or disable it later."
+            )
+            .font(.body)
+
+            Text(
+                "Warning: On tested devices, enabling System Website Filtering may "
+                    + "grey out Safari extension settings. Finish Safari setup before "
+                    + "enabling this filter. This is a device observation, not an "
+                    + "Apple API guarantee."
             )
             .font(.body)
             .foregroundStyle(.secondary)
 
-            Text("Safari extension status: Enabled")
+            Text(systemFilterStateLabel)
                 .font(.headline)
+                .foregroundStyle(systemFilterStateColor)
+
+            if let systemFilterMessage {
+                Text(systemFilterMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Button {
+                enableSystemWebsiteFiltering()
+            } label: {
+                Text("Enable System Website Filtering")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+
+            Button {
+                skipSystemWebsiteFiltering()
+            } label: {
+                Text("Skip for Now")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+
+            if systemFilterState == .enabled {
+                Button {
+                    disableSystemWebsiteFiltering()
+                } label: {
+                    Text("Disable System Website Filtering")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+
+            temporaryTestingControls
+        }
+    }
+
+    // MARK: - Temporary M5 checkpoint
+
+    private var m5CheckpointStep: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Text("System Website Filtering Decision Recorded")
+                .font(.largeTitle.bold())
+
+            Text(
+                "M5 checkpoint. Your System Website Filtering onboarding decision "
+                    + "is recorded. Full onboarding is still incomplete (M6). "
+                    + "The live filter state below comes from ManagedSettings via "
+                    + "SystemWebFilteringService — not from the persisted decision."
+            )
+            .font(.body)
+            .foregroundStyle(.secondary)
+
+            Text(onboardingDecisionLabel)
+                .font(.headline)
+
+            Text(systemFilterStateLabel)
+                .font(.headline)
+                .foregroundStyle(systemFilterStateColor)
+
+            if let systemFilterMessage {
+                Text(systemFilterMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            if systemFilterState == .enabled {
+                Button {
+                    disableSystemWebsiteFiltering()
+                } label: {
+                    Text("Disable System Website Filtering")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+
+            Text("Safari extension status: Enabled")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
 
             Text("All Websites access: Confirmed by you")
                 .font(.subheadline)
@@ -352,10 +484,11 @@ struct OnboardingFlowView: View {
                 "Temporary test controls only. Not part of the normal onboarding "
                     + "sequence. Reset clears OnboardingProgress flags "
                     + "(introduction acknowledgement, All Websites confirmation, "
-                    + "Private Browsing confirmation, and completion). It does not "
-                    + "change Screen Time authorization, disable the Safari extension, "
-                    + "alter Safari system settings, alter functional-test state, or "
-                    + "alter System Website Filtering. Mark Complete exits to the "
+                    + "Private Browsing confirmation, System Website Filtering "
+                    + "decision, and completion). It does not change Screen Time "
+                    + "authorization, disable the Safari extension, alter Safari "
+                    + "system settings, alter functional-test state, or alter "
+                    + "System Website Filtering. Mark Complete exits to the "
                     + "existing post-onboarding root for regression testing."
             )
             .font(.footnote)
@@ -363,7 +496,40 @@ struct OnboardingFlowView: View {
         }
     }
 
-    // MARK: - Live Safari / functional-test refresh
+    private var onboardingDecisionLabel: String {
+        switch onboarding.systemWebFilteringDecision {
+        case .enabled:
+            return "Onboarding decision: Enabled"
+        case .skipped:
+            return "Onboarding decision: Skipped"
+        case nil:
+            return "Onboarding decision: None"
+        }
+    }
+
+    private var systemFilterStateLabel: String {
+        switch systemFilterState {
+        case .enabled:
+            return "Filter state: enabled"
+        case .cleared:
+            return "Filter state: cleared"
+        case .error:
+            return "Filter state: error"
+        }
+    }
+
+    private var systemFilterStateColor: Color {
+        switch systemFilterState {
+        case .enabled:
+            return .green
+        case .cleared:
+            return .secondary
+        case .error:
+            return .red
+        }
+    }
+
+    // MARK: - Live Safari / functional-test / SWF refresh
 
     private func refreshSafariExtensionStateIfNeeded() {
         guard onboarding.hasAcknowledgedIntroduction else {
@@ -393,6 +559,75 @@ struct OnboardingFlowView: View {
 
     private func refreshProtectionTestStatus() {
         protectionTestStatus = SafariProtectionTestStore.displayStatus()
+    }
+
+    private func refreshSystemFilterStateIfNeeded() {
+        guard onboarding.hasAcknowledgedIntroduction else {
+            return
+        }
+        guard appState.isAuthorizationApproved else {
+            return
+        }
+        // Read as soon as Screen Time is approved so the Safari enablement step
+        // can offer recovery Disable when an active filter greys out settings.
+        // Does not require M4 pass or an M5 decision. Read-only — no ManagedSettings write.
+        refreshSystemFilterState()
+    }
+
+    private func refreshSystemFilterState() {
+        systemFilterState = SystemWebFilteringService.shared.currentState
+        switch systemFilterState {
+        case .error(let message):
+            systemFilterMessage = message
+        case .enabled, .cleared:
+            // Clear stale service errors after a successful live read.
+            // Enable/Disable handlers may set an explicit message afterward.
+            systemFilterMessage = nil
+        }
+    }
+
+    // MARK: - System Website Filtering actions
+
+    private func enableSystemWebsiteFiltering() {
+        systemFilterMessage = nil
+        do {
+            try SystemWebFilteringService.shared.enableSystemWebsiteFiltering()
+            refreshSystemFilterState()
+            guard systemFilterState == .enabled else {
+                systemFilterMessage =
+                    "Could not enable system website filtering: verification did not report enabled."
+                return
+            }
+            onboarding.recordSystemWebFilteringEnabledDecision()
+            systemFilterMessage = "System website filtering enabled."
+        } catch {
+            refreshSystemFilterState()
+            systemFilterMessage =
+                "Could not enable system website filtering: \(error.localizedDescription)"
+        }
+    }
+
+    private func skipSystemWebsiteFiltering() {
+        systemFilterMessage = nil
+        onboarding.recordSystemWebFilteringSkippedDecision()
+    }
+
+    private func disableSystemWebsiteFiltering() {
+        systemFilterMessage = nil
+        do {
+            try SystemWebFilteringService.shared.disableSystemWebsiteFiltering()
+            refreshSystemFilterState()
+            guard systemFilterState == .cleared else {
+                systemFilterMessage =
+                    "Could not disable system website filtering: verification did not report cleared."
+                return
+            }
+            systemFilterMessage = "System website filtering disabled."
+        } catch {
+            refreshSystemFilterState()
+            systemFilterMessage =
+                "Could not disable system website filtering: \(error.localizedDescription)"
+        }
     }
 }
 

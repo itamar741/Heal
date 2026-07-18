@@ -104,7 +104,7 @@ Safe Place must interrupt every other root flow. When dismissed, the app returns
 | Writable `currentStep` | **No** | — | Visible step is derived from persisted progress + live technical state |
 | Manual All Websites confirmation | Yes (M3) | `OnboardingProgress` / app-local `UserDefaults` | Manual assert only — not detectable |
 | Manual Private Browsing confirmation | Yes (M3) | `OnboardingProgress` / app-local `UserDefaults` | Manual assert only — not detectable |
-| SWF consent / skip choice | Later | `OnboardingProgress` | Actual on/off remains ManagedSettings via service |
+| SWF consent / skip choice | Yes (M5) | `OnboardingProgress` / `onboarding.systemWebFilteringDecision` | Single optional enum (`enabled` / `skipped`); actual on/off remains ManagedSettings via service |
 | Functional test timestamps | Already | `SafariProtectionTestStore` | Historical pass ≠ live proof |
 | Extension enabled | No durable product write | Fetch live via `SafariExtensionService` | Ephemeral presentation state only |
 | Screen Time auth | System | Refresh live | |
@@ -117,7 +117,7 @@ Do **not** persist a writable `currentStep`. The visible onboarding step is deri
 - persisted onboarding progress flags (completion, introduction acknowledgement, manual confirms; later consent), plus
 - live technical state from existing services/stores.
 
-#### M4 derived-step decision
+#### M5 derived-step decision
 
 While `hasCompletedOnboarding == false`, `OnboardingFlowView` derives the visible step as:
 
@@ -127,11 +127,14 @@ While `hasCompletedOnboarding == false`, `OnboardingFlowView` derives the visibl
 4. Else if `hasConfirmedSafariAllWebsitesAccess == false` → All Websites manual confirmation step
 5. Else if `hasConfirmedSafariPrivateBrowsing == false` → Private Browsing manual confirmation step
 6. Else if `SafariProtectionTestStore.displayStatus() != .passed` → Safari functional protection test step
-7. Else → temporary M4 checkpoint (“Safari protection test passed / SWF consent next in M5”)
+7. Else if `systemWebFilteringDecision == nil` → optional System Website Filtering consent step
+8. Else → temporary M5 checkpoint (“SWF decision recorded / completion next in M6”)
 
 A historical manual confirmation must **not** bypass the live extension-enabled requirement. If the extension is later disabled while onboarding remains incomplete, the derived flow returns to the extension enablement step.
 
-A historical functional-test pass advances past the test step for onboarding progression but must **not** be presented as live configuration proof. Approving Screen Time, enabling the extension, confirming manual permissions, or passing the functional test does **not** set `hasCompletedOnboarding`. Full onboarding remains incomplete until a later milestone (or the temporary test complete control).
+A historical functional-test pass advances past the test step for onboarding progression but must **not** be presented as live configuration proof. Approving Screen Time, enabling the extension, confirming manual permissions, passing the functional test, or recording an SWF Enable/Skip decision does **not** set `hasCompletedOnboarding`. Full onboarding remains incomplete until a later milestone (or the temporary test complete control).
+
+Disabling the live filter after an Enable decision must **not** clear `systemWebFilteringDecision`. Live enabled/cleared presentation is always re-read from `SystemWebFilteringService`, never inferred from the persisted decision.
 
 ---
 
@@ -141,7 +144,7 @@ A historical functional-test pass advances past the test step for onboarding pro
 - URL parsing, query-marker functional-test pass marking, and shield handoff consume semantics stay unchanged.
 - Safe Place opens over onboarding and over the post-onboarding root.
 - Dismiss returns to whatever root gate applies next (incomplete onboarding → shell; complete → post-onboarding flow).
-- Because onboarding does not persist `currentStep`, resume returns to the onboarding shell and re-derives the visible step from persisted flags + live authorization + live Safari enablement + functional-test store status. Correct for M1–M4.
+- Because onboarding does not persist `currentStep`, resume returns to the onboarding shell and re-derives the visible step from persisted flags + live authorization + live Safari enablement + functional-test store status + persisted SWF decision (with live filter presentation from `SystemWebFilteringService`). Correct for M1–M5.
 
 ---
 
@@ -246,10 +249,17 @@ Each milestone stops before commit, requires device testing, and avoids final vi
 
 ### M5
 
-- SWF blocked until Safari prerequisites
-- Enable / disable / skip
-- No auto re-enable
-- Greyed-settings warning copy present
+1. M5 is inaccessible until Screen Time is approved, the Safari extension is live-enabled, both manual confirms are recorded, and the functional protection test has passed
+2. Enable requires an explicit tap and activates the system filter via `SystemWebFilteringService`
+3. Relaunch does not perform another automatic enable
+4. Disable explicitly clears the filter via the service
+5. Relaunch after disable does not re-enable the filter
+6. Skip persists the onboarding decision and advances to the M5 checkpoint without enabling the filter
+7. A failed Enable does not persist a successful decision and remains on the consent step
+8. A failed Disable remains recoverable and does not report a false disabled state (UI re-reads service state)
+9. The greyed-Safari-settings warning is visible before Enable
+10. Safe Place still interrupts M5; dismiss returns to the correct derived onboarding state
+11. Existing Safari test, app-selection, and shield flows show no regression
 
 ### M6
 
@@ -356,11 +366,48 @@ Protection test | M4 checkpoint
 
 - **Does not own in `OnboardingProgress`:** functional-test pending/pass/expiry timestamps (remain in `SafariProtectionTestStore`).
 - **Pass rules unchanged:** only `heal://safe-place?source=safariProtectionTest` with a valid non-expired pending attempt marks pass. Plain `heal://safe-place` opens Safe Place without passing. `markPassedIfPendingValid` consumes the pending attempt once. The fixed source marker confirms a currently valid pending attempt exists; it does not cryptographically correlate a callback with a specific prior attempt.
-- **Derived routing:** After M3 prerequisites, `protectionTestStatus != .passed` → protection-test step; `.passed` → temporary M4 checkpoint. Ephemeral `protectionTestStatus` is initialized from `SafariProtectionTestStore.displayStatus()` and refreshed on appear, foreground, and entering the test step. Safe Place dismiss remounts the incomplete onboarding shell; remount `onAppear` reloads store status and re-derives the step.
+- **Derived routing (as of M4; see M5 note for current continuation):** After M3 prerequisites, `protectionTestStatus != .passed` → protection-test step; `.passed` continued to the temporary M4 checkpoint (now replaced by M5 SWF consent). Ephemeral `protectionTestStatus` is initialized from `SafariProtectionTestStore.displayStatus()` and refreshed on appear, foreground, and entering the test step. Safe Place dismiss remounts the incomplete onboarding shell; remount `onAppear` reloads store status and re-derives the step.
 - **UI reuse:** `SafariProtectionTestSection` is shared by onboarding and spike/setup. Views trigger `SafariProtectionTestOpener`; they do not write pass/expiry directly.
-- **Temporary M4 checkpoint:** Shown when M3 prerequisites are satisfied and the functional test has passed. Full onboarding stays incomplete (`hasCompletedOnboarding` unchanged). Past pass is not presented as live configuration proof.
+- **Temporary M4 checkpoint:** Replaced in M5 by the SWF consent step / M5 checkpoint once the functional test has passed.
 - **Temporary test controls:** unchanged — reset does **not** clear `SafariProtectionTestStore`.
-- **Remaining M5 work:** Optional System Website Filtering consent/skip + warning + disable; blocked until Safari prerequisites including functional validation policy.
+
+### M5 ownership and implementation note
+
+- **`OnboardingProgress` owns only (M5 addition):**
+  - `systemWebFilteringDecision` (`onboarding.systemWebFilteringDecision`) — single optional enum: `enabled` / `skipped` / `nil`
+  - Plus prior flags: introduction acknowledgement, Safari manual confirms, completion
+- **Does not own:** live System Website Filtering ManagedSettings state, Screen Time authorization, Safari extension enablement, functional-test timestamps, or a writable `currentStep`.
+- **Why one optional enum (not multiple booleans):** `enabled` and `skipped` are mutually exclusive outcomes of one user choice. A single optional value cannot form contradictory “both enabled and skipped” states. Live filter on/off is intentionally a separate source of truth (`SystemWebFilteringService`), so disabling later does not require inventing a third persisted boolean.
+- **SWF ownership / data flow:**
+
+```text
+User taps Enable or Skip (or Disable)
+    ↓
+OnboardingFlowView (display + trigger only)
+    ↓ enable/disable
+SystemWebFilteringService → ManagedSettingsStore(named: systemWebFiltering)
+    ↓ read currentState
+ephemeral systemFilterState in OnboardingFlowView
+    ↓ only after successful Enable, or on Skip
+OnboardingProgress.recordSystemWebFilteringEnabledDecision()
+ / recordSystemWebFilteringSkippedDecision()
+    ↓ derived visible step
+Consent | M5 checkpoint
+```
+
+- **Enable persistence rule:** `recordSystemWebFilteringEnabledDecision()` runs only after `enableSystemWebsiteFiltering()` succeeds and live state reads `.enabled`. Failed Enable keeps `systemWebFilteringDecision == nil` and stays on the consent step with the existing technical error text.
+- **Skip:** Persists `.skipped` without calling enable. Does not clear or change ManagedSettings.
+- **Disable:** Calls `disableSystemWebsiteFiltering()` only. Does **not** clear `systemWebFilteringDecision`. Failed Disable re-reads service state so the UI cannot claim cleared when the filter is still enabled.
+- **Early live SWF read:** `OnboardingFlowView` initializes ephemeral `systemFilterState` from `SystemWebFilteringService.shared.currentState` (not an assumed `.cleared`). After introduction acknowledgement and Screen Time approval, appear/foreground refresh **reads** live SWF state even before M4 pass or an M5 decision, so an already-active filter is detectable on the Safari enablement step. Reading never writes ManagedSettings or mutates onboarding progress.
+- **Safari enablement recovery Disable:** When incomplete onboarding is on the Safari extension enablement step and live SWF state is `.enabled` (including when the filter was turned on via spike/debug UI, when temporary reset cleared the M5 decision but left the filter active, or when an earlier `.enabled` decision exists but the extension was later disabled), the enablement step exposes a recovery “Disable System Website Filtering” control with greyed-settings warning copy. It uses the same `disableSystemWebsiteFiltering()` path, does **not** alter `systemWebFilteringDecision`, does **not** expose Enable/Skip early, and keeps the user on the Safari enablement step after a successful disable so they can enable or repair the extension.
+- **Stale presentation messages:** A successful live read of `.enabled` or `.cleared` clears a prior ephemeral service error message. Enable/Disable handlers may still set an explicit success or failure message after refreshing state. No error state is persisted.
+- **Relaunch:** `OnboardingProgress.init` reloads the optional decision from `UserDefaults`. Filter presentation is re-read from `SystemWebFilteringService.currentState`. No launch path calls enable.
+- **Foreground (`scenePhase == .active`):** When introduction is acknowledged and Screen Time is approved, `OnboardingFlowView` refreshes Safari enablement and **reads** SWF `currentState` for presentation (including recovery on the Safari enablement step). Functional-test status refresh remains gated on later Safari manual confirms. No foreground path calls enable or disable.
+- **Why no automatic re-enable can occur:** The only call sites for `enableSystemWebsiteFiltering()` in the product onboarding path are the explicit Enable button handlers on the M5 consent step. Relaunch, foreground refresh, Safe Place dismiss, Safari recovery Disable, and derived routing only read state / re-derive steps or call disable. `WebsiteFeasibilityView` remains a separate spike/debug surface and is not part of onboarding routing.
+- **SpikeAppState:** Continues to own Screen Time orchestration and Safe Place routing only. Does **not** own SWF or onboarding decisions.
+- **Temporary M5 checkpoint:** Shown when M4 prerequisites are satisfied and `systemWebFilteringDecision != nil`. Full onboarding stays incomplete (`hasCompletedOnboarding` unchanged).
+- **Temporary test controls:** Reset clears the SWF decision along with other `OnboardingProgress` flags. Reset still does **not** alter ManagedSettings System Website Filtering — the filter may remain active after reset; the Safari enablement recovery Disable path prevents trapping the tester behind greyed Safari settings.
+- **Remaining M6 work:** Completion hardening + minimal post-completion repair when the extension is disabled. SWF remains optional.
 
 ### Deferred M3 cleanup
 
