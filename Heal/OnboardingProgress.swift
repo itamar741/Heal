@@ -10,6 +10,13 @@
 import Foundation
 import Observation
 
+/// Persisted onboarding decision for optional System Website Filtering.
+/// Actual ManagedSettings on/off remains owned by `SystemWebFilteringService`.
+enum SystemWebFilteringOnboardingDecision: String, Equatable {
+    case enabled
+    case skipped
+}
+
 @Observable
 @MainActor
 final class OnboardingProgress {
@@ -19,6 +26,8 @@ final class OnboardingProgress {
         "onboarding.hasConfirmedSafariAllWebsitesAccess"
     private static let hasConfirmedSafariPrivateBrowsingKey =
         "onboarding.hasConfirmedSafariPrivateBrowsing"
+    private static let systemWebFilteringDecisionKey =
+        "onboarding.systemWebFilteringDecision"
 
     private let userDefaults: UserDefaults
 
@@ -36,6 +45,11 @@ final class OnboardingProgress {
     /// Not a technical verification — Apple provides no API for this setting.
     private(set) var hasConfirmedSafariPrivateBrowsing: Bool
 
+    /// Single optional enum for the M5 Enable/Skip decision.
+    /// `nil` means no decision yet. Mutate only through record methods or temporary test reset.
+    /// Does not mirror live ManagedSettings filter state.
+    private(set) var systemWebFilteringDecision: SystemWebFilteringOnboardingDecision?
+
     /// Single observable reflection of the persisted completion flag.
     /// Mutate only through `markOnboardingCompleted()` or temporary test reset.
     private(set) var hasCompletedOnboarding: Bool
@@ -49,6 +63,11 @@ final class OnboardingProgress {
         self.hasConfirmedSafariPrivateBrowsing = userDefaults.bool(
             forKey: Self.hasConfirmedSafariPrivateBrowsingKey
         )
+        if let rawValue = userDefaults.string(forKey: Self.systemWebFilteringDecisionKey) {
+            self.systemWebFilteringDecision = SystemWebFilteringOnboardingDecision(rawValue: rawValue)
+        } else {
+            self.systemWebFilteringDecision = nil
+        }
         self.hasCompletedOnboarding = userDefaults.bool(forKey: Self.hasCompletedOnboardingKey)
     }
 
@@ -67,23 +86,44 @@ final class OnboardingProgress {
         userDefaults.set(true, forKey: Self.hasConfirmedSafariPrivateBrowsingKey)
     }
 
+    /// Records a successful Enable choice. Call only after
+    /// `SystemWebFilteringService.enableSystemWebsiteFiltering()` succeeds.
+    func recordSystemWebFilteringEnabledDecision() {
+        systemWebFilteringDecision = .enabled
+        userDefaults.set(
+            SystemWebFilteringOnboardingDecision.enabled.rawValue,
+            forKey: Self.systemWebFilteringDecisionKey
+        )
+    }
+
+    /// Records an explicit Skip choice. Does not change ManagedSettings filter state.
+    func recordSystemWebFilteringSkippedDecision() {
+        systemWebFilteringDecision = .skipped
+        userDefaults.set(
+            SystemWebFilteringOnboardingDecision.skipped.rawValue,
+            forKey: Self.systemWebFilteringDecisionKey
+        )
+    }
+
     func markOnboardingCompleted() {
         hasCompletedOnboarding = true
         userDefaults.set(true, forKey: Self.hasCompletedOnboardingKey)
     }
 
     /// Temporary testing helper. Clears every OnboardingProgress-owned persisted
-    /// flag so M3 derived steps can be re-exercised without reinstalling.
+    /// flag so derived steps can be re-exercised without reinstalling.
     /// Does not touch Screen Time authorization, Safari extension enablement,
     /// Safari system settings, functional-test state, or System Website Filtering.
     func resetTemporaryTestingState() {
         hasAcknowledgedIntroduction = false
         hasConfirmedSafariAllWebsitesAccess = false
         hasConfirmedSafariPrivateBrowsing = false
+        systemWebFilteringDecision = nil
         hasCompletedOnboarding = false
         userDefaults.removeObject(forKey: Self.hasAcknowledgedIntroductionKey)
         userDefaults.removeObject(forKey: Self.hasConfirmedSafariAllWebsitesAccessKey)
         userDefaults.removeObject(forKey: Self.hasConfirmedSafariPrivateBrowsingKey)
+        userDefaults.removeObject(forKey: Self.systemWebFilteringDecisionKey)
         userDefaults.removeObject(forKey: Self.hasCompletedOnboardingKey)
     }
 }
