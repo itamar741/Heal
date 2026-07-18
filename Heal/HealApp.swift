@@ -11,10 +11,11 @@ import SwiftUI
 struct HealApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @State private var appState = SpikeAppState()
+    @State private var onboarding = OnboardingProgress()
 
     var body: some Scene {
         WindowGroup {
-            ContentView(appState: appState)
+            ContentView(appState: appState, onboarding: onboarding)
                 .task {
                     appState.refreshSystemState()
                     appState.evaluatePendingSafePlaceEntry()

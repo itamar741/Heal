@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Bindable var appState: SpikeAppState
+    @Bindable var onboarding: OnboardingProgress
 
     var body: some View {
         if !appState.hasRefreshedSystemState {
@@ -16,6 +17,8 @@ struct ContentView: View {
                 .padding()
         } else if appState.pendingSafePlaceEntry {
             SafePlaceView(appState: appState)
+        } else if !onboarding.hasCompletedOnboarding {
+            OnboardingFlowView(onboarding: onboarding)
         } else if appState.isAuthorizationApproved {
             AppSelectionView(appState: appState)
         } else {
@@ -25,5 +28,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView(appState: SpikeAppState())
+    ContentView(appState: SpikeAppState(), onboarding: OnboardingProgress())
 }
