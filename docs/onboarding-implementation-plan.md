@@ -102,10 +102,11 @@ Safe Place must interrupt every other root flow. When dismissed, the app returns
 | `hasCompletedOnboarding` | Yes (M1) | `OnboardingProgress` / app-local `UserDefaults` | Launch gate |
 | `hasAcknowledgedIntroduction` | Yes (M2) | `OnboardingProgress` / app-local `UserDefaults` | Explanation-step acknowledgement only |
 | Writable `currentStep` | **No** | — | Visible step is derived from persisted progress + live technical state |
-| Manual All Websites / Private Browsing confirms | Later | `OnboardingProgress` | Not detectable |
+| Manual All Websites confirmation | Yes (M3) | `OnboardingProgress` / app-local `UserDefaults` | Manual assert only — not detectable |
+| Manual Private Browsing confirmation | Yes (M3) | `OnboardingProgress` / app-local `UserDefaults` | Manual assert only — not detectable |
 | SWF consent / skip choice | Later | `OnboardingProgress` | Actual on/off remains ManagedSettings via service |
 | Functional test timestamps | Already | `SafariProtectionTestStore` | Historical pass ≠ live proof |
-| Extension enabled | No durable product write | Fetch live | |
+| Extension enabled | No durable product write | Fetch live via `SafariExtensionService` | Ephemeral presentation state only |
 | Screen Time auth | System | Refresh live | |
 | System Website Filtering on/off | System (ManagedSettings) | `SystemWebFilteringService` | |
 
@@ -113,18 +114,23 @@ Safe Place must interrupt every other root flow. When dismissed, the app returns
 
 Do **not** persist a writable `currentStep`. The visible onboarding step is derived from:
 
-- persisted onboarding progress flags (completion, introduction acknowledgement; later manual confirms / consent), plus
+- persisted onboarding progress flags (completion, introduction acknowledgement, manual confirms; later consent), plus
 - live technical state from existing services/stores.
 
-#### M2 derived-step decision
+#### M3 derived-step decision
 
 While `hasCompletedOnboarding == false`, `OnboardingFlowView` derives the visible step as:
 
 1. If `hasAcknowledgedIntroduction == false` → explanation step
 2. Else if Screen Time authorization is not approved (`SpikeAppState.isAuthorizationApproved == false`) → Screen Time authorization step
-3. Else → temporary M2 checkpoint (“Screen Time ready / Safari setup next”)
+3. Else if Safari extension is not currently detected as enabled (live `SafariExtensionEnablementModel.isEnabled == false`) → Safari extension enablement step
+4. Else if `hasConfirmedSafariAllWebsitesAccess == false` → All Websites manual confirmation step
+5. Else if `hasConfirmedSafariPrivateBrowsing == false` → Private Browsing manual confirmation step
+6. Else → temporary M3 checkpoint (“Safari setup ready / functional protection test next in M4”)
 
-Approving Screen Time does **not** set `hasCompletedOnboarding`. Full onboarding remains incomplete until a later milestone (or the temporary test complete control).
+A historical manual confirmation must **not** bypass the live extension-enabled requirement. If the extension is later disabled while onboarding remains incomplete, the derived flow returns to the extension enablement step.
+
+Approving Screen Time, enabling the extension, or confirming manual permissions does **not** set `hasCompletedOnboarding`. Full onboarding remains incomplete until a later milestone (or the temporary test complete control).
 
 ---
 
@@ -134,7 +140,7 @@ Approving Screen Time does **not** set `hasCompletedOnboarding`. Full onboarding
 - URL parsing, query-marker functional-test pass marking, and shield handoff consume semantics stay unchanged.
 - Safe Place opens over onboarding and over the post-onboarding root.
 - Dismiss returns to whatever root gate applies next (incomplete onboarding → shell; complete → post-onboarding flow).
-- Because onboarding does not persist `currentStep`, resume returns to the onboarding shell and re-derives the visible step from persisted flags + live authorization. Correct for M1/M2.
+- Because onboarding does not persist `currentStep`, resume returns to the onboarding shell and re-derives the visible step from persisted flags + live authorization + live Safari enablement. Correct for M1–M3.
 
 ---
 
@@ -209,9 +215,18 @@ Each milestone stops before commit, requires device testing, and avoids final vi
 
 ### M3
 
-- Extension enable/disable refreshes on foreground
-- Manual confirms persist across relaunch
-- Cannot skip ahead of detectable enable + confirms
+1. After Screen Time approval, incomplete onboarding shows the Safari extension enablement step when the extension is not detected as enabled
+2. Open Safari Extension Settings launches the existing settings flow
+3. Enabling the extension and returning (or foregrounding) advances past enablement only when live detection reports enabled
+4. Disabling the extension while onboarding is incomplete returns the derived flow to the enablement step even if manual confirms were previously recorded
+5. All Websites confirmation requires an explicit user action and persists across force-quit and relaunch
+6. Private Browsing confirmation requires an explicit user action and persists across force-quit and relaunch
+7. Manual confirmation copy states that Apple does not provide an API to verify those settings
+8. User cannot reach the M3 checkpoint without live enablement + both manual confirms
+9. Safe Place interrupts Safari onboarding steps; dismiss returns to the correct derived step
+10. Temporary reset clears introduction acknowledgement, both manual confirms, and completion — and does not revoke Screen Time, disable the extension, alter Safari system settings, alter functional-test state, or alter System Website Filtering
+11. Temporary completion still routes to the existing post-onboarding root for regression testing
+12. Existing spike Safari functional-test controls outside onboarding remain unchanged (M4 wires the product path)
 
 ### M4
 
@@ -283,8 +298,48 @@ Explanation | Screen Time | M2 pending state
 - **Relaunch:** Introduction acknowledgement is reloaded from `UserDefaults` in `OnboardingProgress.init`. Authorization is refreshed via existing `SpikeAppState.refreshSystemState()` / `refreshAuthorizationStatus()` — never from a persisted auth Boolean in onboarding.
 - **Revocation while incomplete:** If authorization is later not approved, derived step returns to Screen Time. No stale onboarding auth flag can override system state.
 - **Temporary M2 checkpoint:** Shown when introduction is acknowledged and live auth is approved. Full onboarding stays incomplete (`hasCompletedOnboarding` unchanged).
+- **Temporary test controls (onboarding shell only):** See M3 note — reset now clears all `OnboardingProgress` flags including M3 manual confirms; it still does not revoke Screen Time authorization.
+- **Reuse vs duplication:** Auth request/refresh semantics remain in `SpikeAppState` / `AuthorizationService`. Status labels and request-button presentation are shared via `ScreenTimeAuthorizationSection`. `SetupView` remains the post-onboarding / incomplete-auth root UI.
+
+### M3 ownership and implementation note
+
+- **`OnboardingProgress` owns only:**
+  - `hasAcknowledgedIntroduction` (`onboarding.hasAcknowledgedIntroduction`)
+  - `hasConfirmedSafariAllWebsitesAccess` (`onboarding.hasConfirmedSafariAllWebsitesAccess`)
+  - `hasConfirmedSafariPrivateBrowsing` (`onboarding.hasConfirmedSafariPrivateBrowsing`)
+  - `hasCompletedOnboarding` (`onboarding.hasCompletedOnboarding`)
+- **Does not own:** Screen Time authorization status, Safari extension enabled Boolean, functional-test state, System Website Filtering state, or a writable `currentStep`.
+- **Safari enablement ownership / data flow:**
+
+```text
+SFSafariExtensionManager (live)
+    ↓ fetchState / openExtensionSettings
+SafariExtensionService (stateless technical owner)
+    ↓
+SafariExtensionEnablementModel (ephemeral presentation state)
+    ↓
+SafariExtensionEnablementSection / OnboardingFlowView
+    ↓ derived visible step (with OnboardingProgress manual confirms)
+Enablement | All Websites confirm | Private Browsing confirm | M3 checkpoint
+```
+
+- **Open-settings action:** Views call `SafariExtensionEnablementModel.openSettings()` → `SafariExtensionService.openExtensionSettings()`. No second open-settings implementation.
+- **Persisted manual confirmations:** Explicit buttons call `OnboardingProgress.confirmSafariAllWebsitesAccess()` / `confirmSafariPrivateBrowsing()`. Presented as user assertions, not technical verification.
+- **Live refresh:** `OnboardingFlowView` refreshes Safari enablement when introduction is acknowledged and Screen Time is approved — on appear, on foreground (`scenePhase == .active`), and when the enablement step becomes visible. `SafariExtensionEnablementModel.refresh()` cancels any in-flight refresh to avoid overlapping tasks. Last known non-checking state is kept while refreshing so later steps do not flash away.
+- **SpikeAppState:** Continues to own Screen Time orchestration and Safe Place routing only. Does **not** own Safari enablement.
+- **Reuse:** `SafariExtensionSetupSection` (spike/setup + feasibility) composes `SafariExtensionEnablementSection` for enablement UI and keeps functional-test controls locally. Product onboarding does not wire the functional test (M4).
+- **Temporary M3 checkpoint:** Shown when introduction is acknowledged, Screen Time is approved, the extension is live-enabled, and both manual confirms are set. Full onboarding stays incomplete (`hasCompletedOnboarding` unchanged).
 - **Temporary test controls (onboarding shell only):**
   - `Mark Onboarding Complete (Temporary Test)` → `markOnboardingCompleted()` for post-onboarding regression routing.
-  - `Reset Onboarding Progress (Temporary Test)` → `resetTemporaryTestingState()`, which clears **both** OnboardingProgress flags (introduction + completion). Does **not** revoke or change Screen Time authorization.
-- **Reuse vs duplication:** Auth request/refresh semantics remain in `SpikeAppState` / `AuthorizationService`. Status labels and request-button presentation are duplicated locally in `OnboardingFlowView` rather than extracting from `SetupView`, to avoid a broad SetupView refactor in M2. `SetupView` remains the post-onboarding / incomplete-auth root UI.
-- **Remaining M3 work:** Safari extension enablement, open settings, manual All Websites / Private Browsing confirms; replace the temporary M2 checkpoint with the Safari step sequence.
+  - `Reset Onboarding Progress (Temporary Test)` → `resetTemporaryTestingState()`, which clears introduction acknowledgement, All Websites confirmation, Private Browsing confirmation, and completion. Does **not** revoke Screen Time, disable the Safari extension, alter Safari system settings, alter functional-test state, or alter System Website Filtering.
+- **Remaining M4 work:** Functional Safari protection test wired into onboarding; pending/pass/expiry handling; Safe Place dismiss returns to shell while incomplete.
+
+### Deferred M3 cleanup
+
+These items do **not** block M3. They must **not** be implemented during M4 or M5 unless a concrete bug appears. **M7** is the default review point.
+
+1. **Safari refresh triggers in `OnboardingFlowView`** — Re-evaluate whether all three are still needed: `onAppear`, foreground activation, and transition into the Safari enablement step. Current status: not a correctness bug; overlapping refreshes are cancelled safely. Revisit only if lifecycle complexity grows or duplicate queries become observable.
+
+2. **`SafariExtensionEnablementSection.refreshesWithLifecycle`** — Re-evaluate whether the flag can be simplified after product onboarding and spike/debug flows are consolidated in M7. Current status: not an ownership bug; the flag avoids duplicate lifecycle refresh ownership. Defer until M7 cleanup to avoid premature refactoring.
+
+Do not treat merging the two per-surface `SafariExtensionEnablementModel` instances as cleanup; that ownership is currently intentional.
