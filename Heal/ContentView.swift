@@ -18,7 +18,7 @@ struct ContentView: View {
         } else if appState.pendingSafePlaceEntry {
             SafePlaceView(appState: appState)
         } else if !onboarding.hasCompletedOnboarding {
-            OnboardingFlowView(onboarding: onboarding)
+            OnboardingFlowView(onboarding: onboarding, appState: appState)
         } else if appState.isAuthorizationApproved {
             AppSelectionView(appState: appState)
         } else {
