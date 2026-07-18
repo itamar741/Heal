@@ -2,11 +2,12 @@
 //  OnboardingFlowView.swift
 //  Heal
 //
-//  M3 onboarding shell: explanation, Screen Time, Safari enablement, and
-//  manual All Websites / Private Browsing confirmations.
-//  Visible step is derived from OnboardingProgress flags, live SpikeAppState
-//  authorization, and live Safari extension enablement. Functional Safari
-//  protection test (M4) and System Website Filtering (M5) are not implemented.
+//  M4 onboarding shell: explanation, Screen Time, Safari enablement, manual
+//  All Websites / Private Browsing confirmations, and the Safari functional
+//  protection test. Visible step is derived from OnboardingProgress flags,
+//  live SpikeAppState authorization, live Safari extension enablement, and
+//  SafariProtectionTestStore status. System Website Filtering (M5) is not
+//  implemented. Full onboarding completion is not set by a test pass.
 //
 
 import SwiftUI
@@ -16,6 +17,7 @@ struct OnboardingFlowView: View {
     @Bindable var appState: SpikeAppState
     @Environment(\.scenePhase) private var scenePhase
     @State private var safariEnablement = SafariExtensionEnablementModel()
+    @State private var protectionTestStatus = SafariProtectionTestStore.displayStatus()
 
     private enum VisibleStep: Equatable {
         case explanation
@@ -23,7 +25,8 @@ struct OnboardingFlowView: View {
         case safariExtensionEnablement
         case safariAllWebsitesConfirmation
         case safariPrivateBrowsingConfirmation
-        case m3Checkpoint
+        case safariProtectionTest
+        case m4Checkpoint
     }
 
     private var visibleStep: VisibleStep {
@@ -42,7 +45,10 @@ struct OnboardingFlowView: View {
         if !onboarding.hasConfirmedSafariPrivateBrowsing {
             return .safariPrivateBrowsingConfirmation
         }
-        return .m3Checkpoint
+        if protectionTestStatus != .passed {
+            return .safariProtectionTest
+        }
+        return .m4Checkpoint
     }
 
     var body: some View {
@@ -59,8 +65,10 @@ struct OnboardingFlowView: View {
                     safariAllWebsitesConfirmationStep
                 case .safariPrivateBrowsingConfirmation:
                     safariPrivateBrowsingConfirmationStep
-                case .m3Checkpoint:
-                    m3CheckpointStep
+                case .safariProtectionTest:
+                    safariProtectionTestStep
+                case .m4Checkpoint:
+                    m4CheckpointStep
                 }
             }
             .padding()
@@ -69,16 +77,21 @@ struct OnboardingFlowView: View {
         .onAppear {
             appState.refreshAuthorizationStatus()
             refreshSafariExtensionStateIfNeeded()
+            refreshProtectionTestStatusIfNeeded()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else {
                 return
             }
             refreshSafariExtensionStateIfNeeded()
+            refreshProtectionTestStatusIfNeeded()
         }
         .onChange(of: visibleStep) { _, newStep in
             if newStep == .safariExtensionEnablement {
                 safariEnablement.refresh()
+            }
+            if newStep == .safariProtectionTest {
+                refreshProtectionTestStatus()
             }
         }
     }
@@ -229,17 +242,43 @@ struct OnboardingFlowView: View {
         }
     }
 
-    // MARK: - Temporary M3 checkpoint
+    // MARK: - Step 5: Safari functional protection test
 
-    private var m3CheckpointStep: some View {
+    private var safariProtectionTestStep: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("Safari Setup Ready")
+            Text("Test Safari Protection")
                 .font(.largeTitle.bold())
 
             Text(
-                "M3 checkpoint. Safari extension setup prerequisites are satisfied. "
-                    + "The functional Safari protection test will be added in M4. "
-                    + "Full onboarding is still incomplete."
+                "Confirm that Heal’s Safari extension can interrupt the test page "
+                    + "and return you through Safe Place. This proves the extension "
+                    + "path works end to end."
+            )
+            .font(.body)
+            .foregroundStyle(.secondary)
+
+            SafariProtectionTestSection(
+                status: $protectionTestStatus,
+                isStartEnabled: safariEnablement.isEnabled,
+                refreshesWithLifecycle: false
+            )
+
+            temporaryTestingControls
+        }
+    }
+
+    // MARK: - Temporary M4 checkpoint
+
+    private var m4CheckpointStep: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Text("Safari Protection Test Passed")
+                .font(.largeTitle.bold())
+
+            Text(
+                "M4 checkpoint. The Safari functional protection test passed. "
+                    + "Optional System Website Filtering consent will be added in M5. "
+                    + "Full onboarding is still incomplete. A past pass does not prove "
+                    + "Safari protection is still configured right now."
             )
             .font(.body)
             .foregroundStyle(.secondary)
@@ -252,6 +291,10 @@ struct OnboardingFlowView: View {
                 .foregroundStyle(.secondary)
 
             Text("Private Browsing access: Confirmed by you")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Text("Functional protection test: Passed")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -320,7 +363,7 @@ struct OnboardingFlowView: View {
         }
     }
 
-    // MARK: - Live Safari refresh
+    // MARK: - Live Safari / functional-test refresh
 
     private func refreshSafariExtensionStateIfNeeded() {
         guard onboarding.hasAcknowledgedIntroduction else {
@@ -330,6 +373,26 @@ struct OnboardingFlowView: View {
             return
         }
         safariEnablement.refresh()
+    }
+
+    private func refreshProtectionTestStatusIfNeeded() {
+        guard onboarding.hasAcknowledgedIntroduction else {
+            return
+        }
+        guard appState.isAuthorizationApproved else {
+            return
+        }
+        guard onboarding.hasConfirmedSafariAllWebsitesAccess else {
+            return
+        }
+        guard onboarding.hasConfirmedSafariPrivateBrowsing else {
+            return
+        }
+        refreshProtectionTestStatus()
+    }
+
+    private func refreshProtectionTestStatus() {
+        protectionTestStatus = SafariProtectionTestStore.displayStatus()
     }
 }
 
