@@ -117,7 +117,7 @@ Do **not** persist a writable `currentStep`. The visible onboarding step is deri
 - persisted onboarding progress flags (completion, introduction acknowledgement, manual confirms; later consent), plus
 - live technical state from existing services/stores.
 
-#### M3 derived-step decision
+#### M4 derived-step decision
 
 While `hasCompletedOnboarding == false`, `OnboardingFlowView` derives the visible step as:
 
@@ -126,11 +126,12 @@ While `hasCompletedOnboarding == false`, `OnboardingFlowView` derives the visibl
 3. Else if Safari extension is not currently detected as enabled (live `SafariExtensionEnablementModel.isEnabled == false`) → Safari extension enablement step
 4. Else if `hasConfirmedSafariAllWebsitesAccess == false` → All Websites manual confirmation step
 5. Else if `hasConfirmedSafariPrivateBrowsing == false` → Private Browsing manual confirmation step
-6. Else → temporary M3 checkpoint (“Safari setup ready / functional protection test next in M4”)
+6. Else if `SafariProtectionTestStore.displayStatus() != .passed` → Safari functional protection test step
+7. Else → temporary M4 checkpoint (“Safari protection test passed / SWF consent next in M5”)
 
 A historical manual confirmation must **not** bypass the live extension-enabled requirement. If the extension is later disabled while onboarding remains incomplete, the derived flow returns to the extension enablement step.
 
-Approving Screen Time, enabling the extension, or confirming manual permissions does **not** set `hasCompletedOnboarding`. Full onboarding remains incomplete until a later milestone (or the temporary test complete control).
+A historical functional-test pass advances past the test step for onboarding progression but must **not** be presented as live configuration proof. Approving Screen Time, enabling the extension, confirming manual permissions, or passing the functional test does **not** set `hasCompletedOnboarding`. Full onboarding remains incomplete until a later milestone (or the temporary test complete control).
 
 ---
 
@@ -140,7 +141,7 @@ Approving Screen Time, enabling the extension, or confirming manual permissions 
 - URL parsing, query-marker functional-test pass marking, and shield handoff consume semantics stay unchanged.
 - Safe Place opens over onboarding and over the post-onboarding root.
 - Dismiss returns to whatever root gate applies next (incomplete onboarding → shell; complete → post-onboarding flow).
-- Because onboarding does not persist `currentStep`, resume returns to the onboarding shell and re-derives the visible step from persisted flags + live authorization + live Safari enablement. Correct for M1–M3.
+- Because onboarding does not persist `currentStep`, resume returns to the onboarding shell and re-derives the visible step from persisted flags + live authorization + live Safari enablement + functional-test store status. Correct for M1–M4.
 
 ---
 
@@ -230,11 +231,18 @@ Each milestone stops before commit, requires device testing, and avoids final vi
 
 ### M4
 
-- Full functional pass path
-- Expired pending attempt
-- Non-Safari default browser manual URL path
-- Production `heal://safe-place` does not false-pass the test
-- Safe Place dismiss returns to onboarding shell while incomplete
+1. After M3 prerequisites, incomplete onboarding shows the Safari functional protection test step when the store status is not `.passed`
+2. Starting the test records a pending attempt via `SafariProtectionTestOpener` / `SafariProtectionTestStore` and opens the test URL
+3. Completing the test URL in Safari with the functional-test source marker marks pass only when a valid pending attempt exists
+4. Production `heal://safe-place` without the test source marker does not false-pass
+5. Expired pending attempts become `.expired` and do not pass; retry starts a new pending attempt
+6. Waiting state shows the manual test URL for non-Safari default browsers
+7. Safe Place remains the highest-priority root interrupt during the test
+8. Dismissing Safe Place while onboarding is incomplete remounts the onboarding shell; `OnboardingFlowView.onAppear` reloads functional-test status and routing is re-derived (waiting, expired, test, or M4 checkpoint after pass)
+9. A valid pass advances to the temporary M4 checkpoint without setting `hasCompletedOnboarding`
+10. Temporary reset still does not clear functional-test store state
+11. Spike/setup functional-test controls continue to reuse the same store/opener
+12. Existing app-selection and shield paths remain reachable after temporary full completion
 
 ### M5
 
@@ -320,19 +328,39 @@ SafariExtensionEnablementModel (ephemeral presentation state)
     ↓
 SafariExtensionEnablementSection / OnboardingFlowView
     ↓ derived visible step (with OnboardingProgress manual confirms)
-Enablement | All Websites confirm | Private Browsing confirm | M3 checkpoint
+Enablement | All Websites confirm | Private Browsing confirm | (M4 continues)
 ```
 
 - **Open-settings action:** Views call `SafariExtensionEnablementModel.openSettings()` → `SafariExtensionService.openExtensionSettings()`. No second open-settings implementation.
 - **Persisted manual confirmations:** Explicit buttons call `OnboardingProgress.confirmSafariAllWebsitesAccess()` / `confirmSafariPrivateBrowsing()`. Presented as user assertions, not technical verification.
 - **Live refresh:** `OnboardingFlowView` refreshes Safari enablement when introduction is acknowledged and Screen Time is approved — on appear, on foreground (`scenePhase == .active`), and when the enablement step becomes visible. `SafariExtensionEnablementModel.refresh()` cancels any in-flight refresh to avoid overlapping tasks. Last known non-checking state is kept while refreshing so later steps do not flash away.
 - **SpikeAppState:** Continues to own Screen Time orchestration and Safe Place routing only. Does **not** own Safari enablement.
-- **Reuse:** `SafariExtensionSetupSection` (spike/setup + feasibility) composes `SafariExtensionEnablementSection` for enablement UI and keeps functional-test controls locally. Product onboarding does not wire the functional test (M4).
-- **Temporary M3 checkpoint:** Shown when introduction is acknowledged, Screen Time is approved, the extension is live-enabled, and both manual confirms are set. Full onboarding stays incomplete (`hasCompletedOnboarding` unchanged).
-- **Temporary test controls (onboarding shell only):**
-  - `Mark Onboarding Complete (Temporary Test)` → `markOnboardingCompleted()` for post-onboarding regression routing.
-  - `Reset Onboarding Progress (Temporary Test)` → `resetTemporaryTestingState()`, which clears introduction acknowledgement, All Websites confirmation, Private Browsing confirmation, and completion. Does **not** revoke Screen Time, disable the Safari extension, alter Safari system settings, alter functional-test state, or alter System Website Filtering.
-- **Remaining M4 work:** Functional Safari protection test wired into onboarding; pending/pass/expiry handling; Safe Place dismiss returns to shell while incomplete.
+- **Reuse:** `SafariExtensionSetupSection` (spike/setup + feasibility) composes `SafariExtensionEnablementSection` and `SafariProtectionTestSection`.
+
+### M4 ownership and implementation note
+
+- **Functional-test ownership / data flow:**
+
+```text
+SafariProtectionTestOpener.startAndOpen()
+    ↓ pending write
+SafariProtectionTestStore (UserDefaults)
+    ↑ markPassedIfPendingValid (only with source=safariProtectionTest)
+SpikeAppState.handleIncomingURL
+    ↓ pendingSafePlaceEntry
+Safe Place (highest-priority root interrupt; ContentView unmounts onboarding)
+    ↓ dismiss → remount incomplete onboarding shell
+OnboardingFlowView.onAppear reloads store status → derived step
+Protection test | M4 checkpoint
+```
+
+- **Does not own in `OnboardingProgress`:** functional-test pending/pass/expiry timestamps (remain in `SafariProtectionTestStore`).
+- **Pass rules unchanged:** only `heal://safe-place?source=safariProtectionTest` with a valid non-expired pending attempt marks pass. Plain `heal://safe-place` opens Safe Place without passing. `markPassedIfPendingValid` consumes the pending attempt once. The fixed source marker confirms a currently valid pending attempt exists; it does not cryptographically correlate a callback with a specific prior attempt.
+- **Derived routing:** After M3 prerequisites, `protectionTestStatus != .passed` → protection-test step; `.passed` → temporary M4 checkpoint. Ephemeral `protectionTestStatus` is initialized from `SafariProtectionTestStore.displayStatus()` and refreshed on appear, foreground, and entering the test step. Safe Place dismiss remounts the incomplete onboarding shell; remount `onAppear` reloads store status and re-derives the step.
+- **UI reuse:** `SafariProtectionTestSection` is shared by onboarding and spike/setup. Views trigger `SafariProtectionTestOpener`; they do not write pass/expiry directly.
+- **Temporary M4 checkpoint:** Shown when M3 prerequisites are satisfied and the functional test has passed. Full onboarding stays incomplete (`hasCompletedOnboarding` unchanged). Past pass is not presented as live configuration proof.
+- **Temporary test controls:** unchanged — reset does **not** clear `SafariProtectionTestStore`.
+- **Remaining M5 work:** Optional System Website Filtering consent/skip + warning + disable; blocked until Safari prerequisites including functional validation policy.
 
 ### Deferred M3 cleanup
 
