@@ -12,10 +12,16 @@ struct HealApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @State private var appState = SpikeAppState()
     @State private var onboarding = OnboardingProgress()
+    /// Process-scoped only. Survives Safe Place / root switches; not persisted.
+    @State private var protectionRepairSession = ProtectionRepairSession()
 
     var body: some Scene {
         WindowGroup {
-            ContentView(appState: appState, onboarding: onboarding)
+            ContentView(
+                appState: appState,
+                onboarding: onboarding,
+                repairSession: protectionRepairSession
+            )
                 .task {
                     appState.refreshSystemState()
                     appState.evaluatePendingSafePlaceEntry()

@@ -3,14 +3,17 @@
 //  Heal
 //
 //  Product foundation: enable/disable Apple’s automatic system website filtering
-//  via Managed Settings on a dedicated named store. Does not touch app shields,
-//  token-based website shields, or the Safari Web Extension.
+//  via Managed Settings on a dedicated named store. Single observable owner of
+//  live filter presentation state. Does not touch app shields, token-based
+//  website shields, or the Safari Web Extension.
 //
 
 import FamilyControls
 import Foundation
 import ManagedSettings
+import Observation
 
+@Observable
 @MainActor
 final class SystemWebFilteringService {
     enum FilterState: Equatable {
@@ -41,22 +44,46 @@ final class SystemWebFilteringService {
 
     private let store = ManagedSettingsStore(named: storeName)
 
-    private init() {}
+    /// Shared observable live filter state. Initialized from ManagedSettings — never assumed `.cleared`.
+    private(set) var filterState: FilterState
 
-    var currentState: FilterState {
+    /// Compatibility alias for the same stored observable value — not an independent read.
+    var currentState: FilterState { filterState }
+
+    private init() {
         do {
-            return try readFilterState()
+            filterState = try Self.readFilterState(from: store)
         } catch {
-            return .error(error.localizedDescription)
+            filterState = .error(error.localizedDescription)
+        }
+    }
+
+    /// Re-reads ManagedSettings and publishes the result. Use for appear/foreground revalidation.
+    func refreshFilterState() {
+        do {
+            filterState = try Self.readFilterState(from: store)
+        } catch {
+            filterState = .error(error.localizedDescription)
         }
     }
 
     func enableSystemWebsiteFiltering() throws {
-        try requireAuthorization()
-        store.webContent.blockedByFilter = .auto()
+        var writeError: Error?
+        do {
+            try requireAuthorization()
+            store.webContent.blockedByFilter = .auto()
+        } catch {
+            writeError = error
+        }
 
-        let state = try readFilterState()
-        guard state == .enabled else {
+        // Always publish post-attempt live state before returning or throwing.
+        refreshFilterState()
+
+        if let writeError {
+            throw writeError
+        }
+
+        guard filterState == .enabled else {
             throw SystemWebFilteringError.verificationFailed(
                 "System website filtering was set but could not be verified as enabled."
             )
@@ -64,11 +91,22 @@ final class SystemWebFilteringService {
     }
 
     func disableSystemWebsiteFiltering() throws {
-        try requireAuthorization()
-        store.webContent.blockedByFilter = WebContentSettings.FilterPolicy.none
+        var writeError: Error?
+        do {
+            try requireAuthorization()
+            store.webContent.blockedByFilter = WebContentSettings.FilterPolicy.none
+        } catch {
+            writeError = error
+        }
 
-        let state = try readFilterState()
-        guard state == .cleared else {
+        // Always publish post-attempt live state before returning or throwing.
+        refreshFilterState()
+
+        if let writeError {
+            throw writeError
+        }
+
+        guard filterState == .cleared else {
             throw SystemWebFilteringError.verificationFailed(
                 "System website filtering was cleared but could not be verified as cleared."
             )
@@ -81,7 +119,7 @@ final class SystemWebFilteringService {
         }
     }
 
-    private func readFilterState() throws -> FilterState {
+    private static func readFilterState(from store: ManagedSettingsStore) throws -> FilterState {
         guard let policy = store.webContent.blockedByFilter else {
             return .cleared
         }

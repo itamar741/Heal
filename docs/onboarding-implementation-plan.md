@@ -29,7 +29,8 @@ Guide a new user through the smallest clean onboarding path:
 5. Manual Private Browsing enablement confirmation
 6. Functional Safari protection test
 7. Optional System Website Filtering activation (explicit consent)
-8. Completion
+8. Explicit Finish Setup completion
+9. Post-completion repair when detectable protections are unavailable (session-deferrable)
 
 Establish clear ownership, persistence, and root navigation before polishing visuals.
 
@@ -84,14 +85,15 @@ Establish clear ownership, persistence, and root navigation before polishing vis
 
 ## 5. Root navigation priority
 
-Effective root order:
+Effective root order (M6):
 
 1. Initial system refresh / loading state
 2. Pending Safe Place entry (**highest product interrupt**)
 3. Incomplete onboarding → onboarding shell
-4. Existing post-onboarding application flow (currently spike `AppSelectionView` when authorized, otherwise existing setup/auth UI)
+4. Completed onboarding with unresolved repair issues → combined repair screen, **unless** deferred for this app process/session via Continue to App for Now
+5. Existing post-onboarding application flow (currently spike `AppSelectionView` when authorized, otherwise existing setup/auth UI)
 
-Safe Place must interrupt every other root flow. When dismissed, the app returns naturally to the onboarding shell if onboarding is incomplete.
+Safe Place must interrupt every other root flow, including repair. When dismissed, the app returns naturally to whichever lower-priority root gate applies next (incomplete onboarding → shell; completed with unresolved repair and no session deferral → repair; otherwise → post-onboarding flow).
 
 ---
 
@@ -128,11 +130,11 @@ While `hasCompletedOnboarding == false`, `OnboardingFlowView` derives the visibl
 5. Else if `hasConfirmedSafariPrivateBrowsing == false` → Private Browsing manual confirmation step
 6. Else if `SafariProtectionTestStore.displayStatus() != .passed` → Safari functional protection test step
 7. Else if `systemWebFilteringDecision == nil` → optional System Website Filtering consent step
-8. Else → temporary M5 checkpoint (“SWF decision recorded / completion next in M6”)
+8. Else → Finish Setup (explicit product completion action)
 
 A historical manual confirmation must **not** bypass the live extension-enabled requirement. If the extension is later disabled while onboarding remains incomplete, the derived flow returns to the extension enablement step.
 
-A historical functional-test pass advances past the test step for onboarding progression but must **not** be presented as live configuration proof. Approving Screen Time, enabling the extension, confirming manual permissions, passing the functional test, or recording an SWF Enable/Skip decision does **not** set `hasCompletedOnboarding`. Full onboarding remains incomplete until a later milestone (or the temporary test complete control).
+A historical functional-test pass advances past the test step for onboarding progression but must **not** be presented as live configuration proof. Approving Screen Time, enabling the extension, confirming manual permissions, passing the functional test, or recording an SWF Enable/Skip decision does **not** set `hasCompletedOnboarding`. Full onboarding remains incomplete until the user taps **Finish Setup**, which calls `OnboardingProgress.markOnboardingCompleted()`.
 
 Disabling the live filter after an Enable decision must **not** clear `systemWebFilteringDecision`. Live enabled/cleared presentation is always re-read from `SystemWebFilteringService`, never inferred from the persisted decision.
 
@@ -144,7 +146,8 @@ Disabling the live filter after an Enable decision must **not** clear `systemWeb
 - URL parsing, query-marker functional-test pass marking, and shield handoff consume semantics stay unchanged.
 - Safe Place opens over onboarding and over the post-onboarding root.
 - Dismiss returns to whatever root gate applies next (incomplete onboarding → shell; complete → post-onboarding flow).
-- Because onboarding does not persist `currentStep`, resume returns to the onboarding shell and re-derives the visible step from persisted flags + live authorization + live Safari enablement + functional-test store status + persisted SWF decision (with live filter presentation from `SystemWebFilteringService`). Correct for M1–M5.
+- Because onboarding does not persist `currentStep`, resume returns to the onboarding shell and re-derives the visible step from persisted flags + live authorization + live Safari enablement + functional-test store status + persisted SWF decision (with live filter presentation from `SystemWebFilteringService`). Correct for M1–M6.
+- Session-only repair deferral (`ProtectionRepairSession.hasDeferredRepairThisSession`) survives Safe Place presentation/dismissal for the current process and is **not** cleared by Safe Place. It resets only on cold process launch.
 
 ---
 
@@ -182,7 +185,7 @@ Disabling the live filter after an Enable decision must **not** clear `systemWeb
 | **M3** | Safari enable + open settings + manual All Websites / Private Browsing confirms |
 | **M4** | Functional Safari protection test wired into onboarding; Safe Place dismiss returns to shell |
 | **M5** | Optional SWF consent/skip + warning + disable; blocked until Safari prerequisites |
-| **M6** | Completion hardening + minimal post-completion repair when extension is disabled |
+| **M6** | Explicit Finish Setup completion + post-completion combined repair (Screen Time, Safari extension, SWF) with session-only bypass |
 | **M7** | Demote spike duplication; keep feasibility debug-only |
 
 Each milestone stops before commit, requires device testing, and avoids final visual design.
@@ -263,9 +266,23 @@ Each milestone stops before commit, requires device testing, and avoids final vi
 
 ### M6
 
-- Completed users land on post-onboarding root
-- Disabled extension after completion surfaces repair, not silent success
-- SWF remains optional
+1. After prior requirements and an M5 Enable/Skip decision, Finish Setup is shown; tapping it persists completion and routes to the completed-user flow
+2. Completion does not happen automatically after Enable or Skip
+3. Relaunch with all protections healthy does not show repair
+4. Revoked Screen Time authorization produces its own repair item
+5. Safari extension disabled produces its own repair item
+6. Historical SWF `.enabled` + live cleared/error produces an SWF repair item
+7. Historical SWF `.skipped` + live cleared does **not** produce an SWF repair item
+8. Multiple broken protections appear together on one repair screen
+9. Repairing one protection leaves unresolved issues visible
+10. Active SWF can be disabled from Safari repair when extension settings may be greyed; historical M5 decision is unchanged
+11. SWF is never automatically re-enabled
+12. Fixing all issues automatically returns to the normal post-onboarding flow
+13. Continue to App for Now hides repair for the current process only
+14. Safe Place can interrupt after session bypass without making repair reappear during that same process
+15. Cold relaunch shows unresolved repair issues again
+16. No selected app is not treated as a repair issue
+17. Existing app selection, shield synchronization, Safari test, and Safe Place flows show no regression
 
 ### M7
 
@@ -290,7 +307,7 @@ Each milestone stops before commit, requires device testing, and avoids final vi
 
 - **Constructs / retains:** `HealApp` creates one `OnboardingProgress` with `@State` at app scope (same observation style as `SpikeAppState`; deployment target supports `@Observable`).
 - **Reads:** `ContentView` for root routing only; `OnboardingFlowView` for display.
-- **Mutates:** temporary M1 completion control in `OnboardingFlowView` calls `markOnboardingCompleted()`. `ContentView` does not inject overlays, insets, or reset controls into the post-onboarding root.
+- **Mutates (historical M1 note; superseded for product completion by M6):** M1 used a temporary completion control. M6 product completion is Finish Setup → `markOnboardingCompleted()`. `ContentView` does not inject overlays, insets, or reset controls into the post-onboarding root.
 - **M1 incomplete-state reset procedure:** delete and reinstall the app (clears app-local `UserDefaults`, including `onboarding.hasCompletedOnboarding`). Do not add a post-onboarding Reset control that alters `AppSelectionView` / `SetupView` layout.
 - **Persistence:** model methods write app-local `UserDefaults`; in-memory property is the single observable reflection of that value, not a second independent store.
 
@@ -403,11 +420,84 @@ Consent | M5 checkpoint
 - **Stale presentation messages:** A successful live read of `.enabled` or `.cleared` clears a prior ephemeral service error message. Enable/Disable handlers may still set an explicit success or failure message after refreshing state. No error state is persisted.
 - **Relaunch:** `OnboardingProgress.init` reloads the optional decision from `UserDefaults`. Filter presentation is re-read from `SystemWebFilteringService.currentState`. No launch path calls enable.
 - **Foreground (`scenePhase == .active`):** When introduction is acknowledged and Screen Time is approved, `OnboardingFlowView` refreshes Safari enablement and **reads** SWF `currentState` for presentation (including recovery on the Safari enablement step). Functional-test status refresh remains gated on later Safari manual confirms. No foreground path calls enable or disable.
-- **Why no automatic re-enable can occur:** The only call sites for `enableSystemWebsiteFiltering()` in the product onboarding path are the explicit Enable button handlers on the M5 consent step. Relaunch, foreground refresh, Safe Place dismiss, Safari recovery Disable, and derived routing only read state / re-derive steps or call disable. `WebsiteFeasibilityView` remains a separate spike/debug surface and is not part of onboarding routing.
+- **Why no automatic re-enable can occur:** Product call sites for `enableSystemWebsiteFiltering()` are only explicit Enable button handlers — M5 consent and M6 SWF repair. Relaunch, foreground refresh, Safe Place dismiss, Safari recovery Disable, and derived routing only read state / re-derive steps or call disable. `WebsiteFeasibilityView` remains a separate spike/debug surface and is not part of onboarding routing.
 - **SpikeAppState:** Continues to own Screen Time orchestration and Safe Place routing only. Does **not** own SWF or onboarding decisions.
-- **Temporary M5 checkpoint:** Shown when M4 prerequisites are satisfied and `systemWebFilteringDecision != nil`. Full onboarding stays incomplete (`hasCompletedOnboarding` unchanged).
-- **Temporary test controls:** Reset clears the SWF decision along with other `OnboardingProgress` flags. Reset still does **not** alter ManagedSettings System Website Filtering — the filter may remain active after reset; the Safari enablement recovery Disable path prevents trapping the tester behind greyed Safari settings.
-- **Remaining M6 work:** Completion hardening + minimal post-completion repair when the extension is disabled. SWF remains optional.
+- **Finish Setup (M6 product completion):** Shown when M4 prerequisites are satisfied and `systemWebFilteringDecision != nil`. Full onboarding stays incomplete until the user taps Finish Setup → `OnboardingProgress.markOnboardingCompleted()`. Enable/Skip never auto-complete onboarding.
+- **Temporary test controls:** Reset remains for device testing only. The temporary Mark Complete control is retired from the product M6 path. Reset clears the SWF decision along with other `OnboardingProgress` flags. Reset still does **not** alter ManagedSettings System Website Filtering — the filter may remain active after reset; the Safari enablement recovery Disable path prevents trapping the tester behind greyed Safari settings.
+
+### M6 ownership and implementation note
+
+- **Explicit Finish Setup:** The only product write path for completion is Finish Setup → `OnboardingProgress.markOnboardingCompleted()` → `onboarding.hasCompletedOnboarding` / `UserDefaults`. No automatic completion after M5 Enable/Skip.
+- **No writable `currentStep`:** Visible incomplete-onboarding step remains derived. Repair issues are also derived, never persisted as a step index.
+- **`ProtectionRepairSession` (app-process ephemeral owner):**
+  - Constructed once in `HealApp` with `@State`
+  - Owns only `hasDeferredRepairThisSession` (Continue to App for Now)
+  - Not persisted to `UserDefaults` or any durable store
+  - Survives Safe Place and other root switches because it lives above `ContentView`
+  - Resets naturally on cold process launch
+  - Must **not** live in `OnboardingProgress`
+- **Repair issue model:** `ProtectionRepairIssue` + `ProtectionRepairEvaluator` derive current issues independently from:
+  - Screen Time: live `SpikeAppState.isAuthorizationApproved` / `AuthorizationService`
+  - Safari: live `SafariExtensionEnablementModel` / `SafariExtensionService` (`.checking` is not treated as a known failure)
+  - SWF: historical `OnboardingProgress.systemWebFilteringDecision == .enabled` **and** shared live `SystemWebFilteringService.filterState` is not `.enabled` (includes `.cleared` and `.error`)
+  - Historical `.skipped` → **no** SWF repair issue even if live state is cleared
+- **Live SWF ownership (observable technical owner):**
+  - `SystemWebFilteringService.shared` is `@Observable` and owns one stored `filterState`, initialized from a ManagedSettings read (never assumed `.cleared`)
+  - `refreshFilterState()` re-reads ManagedSettings and publishes the result (appear/foreground revalidation)
+  - Explicit Enable/Disable write ManagedSettings, then the service itself always refreshes and publishes before returning or throwing — callers must not be the sole refresh path in `catch`
+  - `currentState` is a compatibility alias for the same stored `filterState`, not an independent presentation read
+  - Views (`ProtectionRepairHost` / `ProtectionRepairView`, `OnboardingFlowView`, `WebsiteFeasibilityView`) must not keep mutable SWF snapshots; they may keep only ephemeral action/status messages
+  - `OnboardingProgress` owns only the historical M5 Enable/Skip decision
+- **Combined repair UI:** `ProtectionRepairHost` / `ProtectionRepairView` list every current issue with its own explicit action, refresh on appear/foreground, update as issues are repaired (including immediate recompute when another view disables SWF through the shared service), auto-exit to post-onboarding when none remain, and offer Continue to App for Now.
+- **Root priority (final M6):** loading → Safe Place → incomplete onboarding → completed + unresolved repair (unless session-deferred) → post-onboarding.
+- **Screen Time repair data flow:**
+
+```text
+AuthorizationService / SpikeAppState (live)
+    ↓
+ProtectionRepairEvaluator → .screenTimeAuthorization
+    ↓
+ProtectionRepairView → ScreenTimeAuthorizationSection
+    ↓ requestAuthorization()
+SpikeAppState / AuthorizationService
+```
+
+- **Safari repair data flow:**
+
+```text
+SafariExtensionService (live)
+    ↓
+SafariExtensionEnablementModel (ephemeral in ProtectionRepairHost)
+    ↓
+ProtectionRepairEvaluator → .safariExtension
+    ↓
+ProtectionRepairView → warning + open settings (+ SWF Disable recovery if live SWF enabled)
+```
+
+  Disabling SWF for Safari settings recovery does **not** alter `systemWebFilteringDecision`. If the historical decision is `.enabled`, clearing SWF then exposes the SWF repair Enable action — never automatic re-enable.
+
+- **SWF repair data flow:**
+
+```text
+Explicit Enable/Disable (onboarding / repair / WebsiteFeasibility)
+    ↓
+SystemWebFilteringService → ManagedSettings write → refreshFilterState() publishes filterState
+    ↓
+OnboardingProgress.systemWebFilteringDecision == .enabled
+    +
+SystemWebFilteringService.filterState != .enabled
+    ↓
+ProtectionRepairEvaluator → .systemWebFiltering
+    ↓
+ProtectionRepairHost recomputes immediately (shared observable; no background required)
+```
+
+  Never enable/re-enable automatically on launch, foreground, Safe Place dismiss, or derived routing. Foreground only revalidates via `refreshFilterState()`.
+
+- **App selection / app shield:** No selected app is **not** a repair failure. When Screen Time is approved and a persisted selection exists, existing `SpikeAppState` shield synchronization remains the sole owner. No second shield-state owner and no independent app-shield repair mechanism.
+- **Failure / stale errors:** Live technical SWF state (including `.error`) lives only on `SystemWebFilteringService.filterState`. Views hold ephemeral action messages only. A later successful refresh to `.enabled` / `.cleared` clears stale view action messages; technical `.error` is replaced by the next successful service refresh. Safari enablement refresh cancels in-flight work. No false success.
+- **SpikeAppState:** Continues to own Screen Time orchestration, Safe Place routing, selection, and shield sync only. Does **not** own repair deferral, repair issue lists, or onboarding completion writes.
+- **Remaining M7 work:** Demote spike/debug UI duplication; keep `WebsiteFeasibilityView` debug-only; no duplicate writable onboarding state in feasibility UI. M7 cleanup was not started in M6.
 
 ### Deferred M3 cleanup
 
