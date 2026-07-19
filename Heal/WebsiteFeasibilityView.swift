@@ -17,7 +17,9 @@ struct WebsiteFeasibilityView: View {
     @State private var hasValidSelection = false
     @State private var isWebsiteShieldApplied = false
     @State private var shieldStatusMessage: String?
-    @State private var systemFilterState: SystemWebFilteringService.FilterState = .cleared
+    /// Shared observable technical owner — not a view-local SWF snapshot.
+    @State private var systemFiltering = SystemWebFilteringService.shared
+    /// Ephemeral action/status copy only. Not live filter truth.
     @State private var systemFilterMessage: String?
 
     var body: some View {
@@ -131,6 +133,12 @@ struct WebsiteFeasibilityView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
+                if case .error(let message) = systemFiltering.filterState {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 if let systemFilterMessage {
                     Text(systemFilterMessage)
                         .font(.footnote)
@@ -164,12 +172,18 @@ struct WebsiteFeasibilityView: View {
         )
         .onAppear {
             syncWebsiteShieldStatus()
-            syncSystemFilterStatus()
+            systemFiltering.refreshFilterState()
+            switch systemFiltering.filterState {
+            case .enabled, .cleared:
+                systemFilterMessage = nil
+            case .error:
+                break
+            }
         }
     }
 
     private var systemFilterStateLabel: String {
-        switch systemFilterState {
+        switch systemFiltering.filterState {
         case .enabled:
             return "Current state: enabled"
         case .cleared:
@@ -180,7 +194,7 @@ struct WebsiteFeasibilityView: View {
     }
 
     private var systemFilterStateColor: Color {
-        switch systemFilterState {
+        switch systemFiltering.filterState {
         case .enabled:
             return .green
         case .cleared:
@@ -269,31 +283,34 @@ struct WebsiteFeasibilityView: View {
     }
 
     private func enableSystemWebsiteFiltering() {
+        systemFilterMessage = nil
         do {
-            try SystemWebFilteringService.shared.enableSystemWebsiteFiltering()
-            syncSystemFilterStatus()
+            try systemFiltering.enableSystemWebsiteFiltering()
+            guard systemFiltering.filterState == .enabled else {
+                systemFilterMessage =
+                    "Could not enable system website filtering: verification did not report enabled."
+                return
+            }
             systemFilterMessage = "System website filtering enabled."
         } catch {
-            syncSystemFilterStatus()
-            systemFilterMessage = "Could not enable system website filtering: \(error.localizedDescription)"
+            systemFilterMessage =
+                "Could not enable system website filtering: \(error.localizedDescription)"
         }
     }
 
     private func disableSystemWebsiteFiltering() {
+        systemFilterMessage = nil
         do {
-            try SystemWebFilteringService.shared.disableSystemWebsiteFiltering()
-            syncSystemFilterStatus()
+            try systemFiltering.disableSystemWebsiteFiltering()
+            guard systemFiltering.filterState == .cleared else {
+                systemFilterMessage =
+                    "Could not disable system website filtering: verification did not report cleared."
+                return
+            }
             systemFilterMessage = "System website filtering disabled."
         } catch {
-            syncSystemFilterStatus()
-            systemFilterMessage = "Could not disable system website filtering: \(error.localizedDescription)"
-        }
-    }
-
-    private func syncSystemFilterStatus() {
-        systemFilterState = SystemWebFilteringService.shared.currentState
-        if case .error(let message) = systemFilterState {
-            systemFilterMessage = message
+            systemFilterMessage =
+                "Could not disable system website filtering: \(error.localizedDescription)"
         }
     }
 }
