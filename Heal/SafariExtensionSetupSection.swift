@@ -2,12 +2,14 @@
 //  SafariExtensionSetupSection.swift
 //  Heal
 //
-//  Minimal Safari Extension setup UI for the spike/setup flow.
+//  DEBUG-only Safari Extension setup composite for spike/setup testing.
 //  Reuses SafariExtensionEnablementSection for enablement query/open-settings
 //  and SafariProtectionTestSection for the functional protection test.
-//  Persisted attempt/result state lives in SafariProtectionTestStore.
+//  Product onboarding/repair use those sections directly. Persisted
+//  attempt/result state lives in SafariProtectionTestStore.
 //
 
+#if DEBUG
 import SwiftUI
 
 struct SafariExtensionSetupSection: View {
@@ -73,3 +75,4 @@ struct SafariExtensionSetupSection: View {
     SafariExtensionSetupSection()
         .padding()
 }
+#endif

@@ -170,9 +170,9 @@ Disabling the live filter after an Enable decision must **not** clear `systemWeb
 | Safe Place routing in `SpikeAppState` | Reuse; do not move test-pass ownership |
 | `SafariExtensionSetupSection` | Split / slim into onboarding steps in later milestones |
 | `SetupView` auth UI | Fold into onboarding Screen Time step later |
-| `WebsiteFeasibilityView` | **Remain spike/debug-only** |
+| `WebsiteFeasibilityView` | **DEBUG-only** (M7 complete; absent from Release navigation) |
 | `AppSelectionView` | Remain temporary post-onboarding root for now |
-| Dual product + feasibility Safari/SWF UI | Demote feasibility to debug-only over M7; avoid two primary flows |
+| Dual product + feasibility Safari/SWF UI | **M7 complete:** feasibility and spike Safari setup composite are DEBUG-only; Release keeps product onboarding/repair paths only |
 
 ---
 
@@ -286,9 +286,13 @@ Each milestone stops before commit, requires device testing, and avoids final vi
 
 ### M7
 
-- Product path only through onboarding
-- Feasibility still reachable from spike/debug entry
+- Product path only through onboarding / repair / post-onboarding product controls
+- Reset Onboarding Progress is DEBUG-only (partial-reset semantics unchanged)
+- Website Feasibility and retained spike tools (`SafariExtensionSetupSection`, handoff diagnostic UI) are DEBUG-only
+- Release navigation contains only product flows — no spike/feasibility/temporary-test screens
+- Feasibility still reachable from DEBUG entry on `AppSelectionView`
 - No duplicate writable onboarding state in feasibility UI
+- No protection ownership or behavior changed
 
 ---
 
@@ -497,14 +501,14 @@ ProtectionRepairHost recomputes immediately (shared observable; no background re
 - **App selection / app shield:** No selected app is **not** a repair failure. When Screen Time is approved and a persisted selection exists, existing `SpikeAppState` shield synchronization remains the sole owner. No second shield-state owner and no independent app-shield repair mechanism.
 - **Failure / stale errors:** Live technical SWF state (including `.error`) lives only on `SystemWebFilteringService.filterState`. Views hold ephemeral action messages only. A later successful refresh to `.enabled` / `.cleared` clears stale view action messages; technical `.error` is replaced by the next successful service refresh. Safari enablement refresh cancels in-flight work. No false success.
 - **SpikeAppState:** Continues to own Screen Time orchestration, Safe Place routing, selection, and shield sync only. Does **not** own repair deferral, repair issue lists, or onboarding completion writes.
-- **Remaining M7 work:** Demote spike/debug UI duplication; keep `WebsiteFeasibilityView` debug-only; no duplicate writable onboarding state in feasibility UI. M7 cleanup was not started in M6.
+- **M7 cleanup completed:** Spike/debug UI demoted with compile-time `#if DEBUG` gates. `Reset Onboarding Progress` and its explanatory copy compile only in DEBUG. `WebsiteFeasibilityView` and `SafariExtensionSetupSection` compile only in DEBUG; Website Feasibility navigation and handoff diagnostic UI on `AppSelectionView` are DEBUG-only; SetupView’s spike Safari composite is DEBUG-only. Release builds expose only product navigation (onboarding, Finish Setup, repair, Continue to App for Now, app selection/shield, Safe Place). Underlying services (`SystemWebFilteringService`, `WebsiteShieldService`, Safari test store/opener, handoff store/routing) and protection ownership/behavior are unchanged. No writable `currentStep` or new persistence was added. No duplicate writable onboarding state in feasibility UI.
 
 ### Deferred M3 cleanup
 
-These items do **not** block M3. They must **not** be implemented during M4 or M5 unless a concrete bug appears. **M7** is the default review point.
+These items do **not** block M3. They were intentionally left unchanged in M7 (visibility cleanup only; no lifecycle refactor).
 
 1. **Safari refresh triggers in `OnboardingFlowView`** — Re-evaluate whether all three are still needed: `onAppear`, foreground activation, and transition into the Safari enablement step. Current status: not a correctness bug; overlapping refreshes are cancelled safely. Revisit only if lifecycle complexity grows or duplicate queries become observable.
 
-2. **`SafariExtensionEnablementSection.refreshesWithLifecycle`** — Re-evaluate whether the flag can be simplified after product onboarding and spike/debug flows are consolidated in M7. Current status: not an ownership bug; the flag avoids duplicate lifecycle refresh ownership. Defer until M7 cleanup to avoid premature refactoring.
+2. **`SafariExtensionEnablementSection.refreshesWithLifecycle`** — Re-evaluate whether the flag can be simplified now that spike/debug Safari setup is DEBUG-only. Current status: not an ownership bug; the flag avoids duplicate lifecycle refresh ownership. Still deferred — not required for M7 product cleanup.
 
 Do not treat merging the two per-surface `SafariExtensionEnablementModel` instances as cleanup; that ownership is currently intentional.

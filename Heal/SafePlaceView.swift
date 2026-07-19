@@ -107,7 +107,7 @@ struct SafePlaceView: View {
             Button {
                 appState.dismissSafePlaceEntry()
             } label: {
-                Text("Exit (Slice 1 temp)")
+                Text("Exit Safe Place")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)

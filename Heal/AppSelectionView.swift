@@ -18,6 +18,7 @@ struct AppSelectionView: View {
 
     private var appSelectionContent: some View {
         VStack(alignment: .leading, spacing: 24) {
+            #if DEBUG
             NavigationLink {
                 WebsiteFeasibilityView()
             } label: {
@@ -25,6 +26,7 @@ struct AppSelectionView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            #endif
 
             Text("Choose One App")
                 .font(.largeTitle.bold())
@@ -96,6 +98,7 @@ struct AppSelectionView: View {
             .font(.footnote)
             .foregroundStyle(.secondary)
 
+            #if DEBUG
             Divider()
 
             VStack(alignment: .leading, spacing: 8) {
@@ -125,6 +128,7 @@ struct AppSelectionView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            #endif
 
             Spacer()
         }

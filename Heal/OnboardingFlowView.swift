@@ -143,7 +143,9 @@ struct OnboardingFlowView: View {
             }
             .buttonStyle(.borderedProminent)
 
+            #if DEBUG
             temporaryTestingControls
+            #endif
         }
     }
 
@@ -164,7 +166,9 @@ struct OnboardingFlowView: View {
 
             ScreenTimeAuthorizationSection(appState: appState)
 
+            #if DEBUG
             temporaryTestingControls
+            #endif
         }
     }
 
@@ -217,7 +221,9 @@ struct OnboardingFlowView: View {
                 }
             }
 
+            #if DEBUG
             temporaryTestingControls
+            #endif
         }
     }
 
@@ -251,7 +257,9 @@ struct OnboardingFlowView: View {
             }
             .buttonStyle(.borderedProminent)
 
+            #if DEBUG
             temporaryTestingControls
+            #endif
         }
     }
 
@@ -285,7 +293,9 @@ struct OnboardingFlowView: View {
             }
             .buttonStyle(.borderedProminent)
 
+            #if DEBUG
             temporaryTestingControls
+            #endif
         }
     }
 
@@ -310,7 +320,9 @@ struct OnboardingFlowView: View {
                 refreshesWithLifecycle: false
             )
 
+            #if DEBUG
             temporaryTestingControls
+            #endif
         }
     }
 
@@ -379,7 +391,9 @@ struct OnboardingFlowView: View {
                 .buttonStyle(.bordered)
             }
 
+            #if DEBUG
             temporaryTestingControls
+            #endif
         }
     }
 
@@ -451,7 +465,9 @@ struct OnboardingFlowView: View {
             }
             .buttonStyle(.borderedProminent)
 
+            #if DEBUG
             temporaryTestingControls
+            #endif
         }
     }
 
@@ -478,6 +494,7 @@ struct OnboardingFlowView: View {
         }
     }
 
+    #if DEBUG
     private var temporaryTestingControls: some View {
         VStack(alignment: .leading, spacing: 12) {
             Divider()
@@ -508,6 +525,7 @@ struct OnboardingFlowView: View {
             .foregroundStyle(.secondary)
         }
     }
+    #endif
 
     private var onboardingDecisionLabel: String {
         switch onboarding.systemWebFilteringDecision {
