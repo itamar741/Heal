@@ -2,11 +2,12 @@
 //  WebsiteFeasibilityView.swift
 //  Heal
 //
-//  Stage 1 website feasibility: select one WebDomainToken, apply named-store shield,
-//  and validate custom shield → handoff → Safe Place plumbing in Safari.
-//  Not final product UI. No adult-content classification in this stage.
+//  DEBUG-only Stage 1 website feasibility: select one WebDomainToken, apply
+//  named-store shield, and validate custom shield → handoff → Safe Place plumbing
+//  in Safari. Not product navigation. No adult-content classification in this stage.
 //
 
+#if DEBUG
 import FamilyControls
 import SwiftUI
 
@@ -320,3 +321,4 @@ struct WebsiteFeasibilityView: View {
         WebsiteFeasibilityView()
     }
 }
+#endif

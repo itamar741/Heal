@@ -80,13 +80,13 @@ final class SpikeAppState {
 
         guard categoryCount == 0 else {
             hasPersistedAppSelection = false
-            selectionValidationMessage = "Categories are out of scope for this spike. Select one app only."
+            selectionValidationMessage = "Categories are not supported. Select one app only."
             return
         }
 
         guard webDomainCount == 0 else {
             hasPersistedAppSelection = false
-            selectionValidationMessage = "Web domains are out of scope for this spike. Select one app only."
+            selectionValidationMessage = "Web domains are not supported. Select one app only."
             return
         }
 
