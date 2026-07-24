@@ -188,6 +188,52 @@ Do not commit architecture-sensitive changes until:
 2. Duplicate sources of truth and lifecycle risks were checked.
 3. Required device testing passed.
 
+### Documentation evolution
+
+Record important architectural knowledge while the system is built. Do not rely
+on a later audit to reconstruct missing reasoning.
+
+Require a documentation-impact review when a change:
+
+- introduces or changes state ownership;
+- adds or changes persistence;
+- adds a service or backend integration;
+- changes routing or navigation;
+- changes lifecycle or concurrency behavior;
+- changes cross-view or cross-component data flow;
+- introduces or changes a source of truth;
+- changes an internal or external contract;
+- adds or changes migration, deployment, deletion, recovery, release, setup, or
+  operational procedures;
+- makes, changes, or supersedes a significant architectural decision.
+
+Documentation types:
+
+- **ADR** — decision, context, alternatives, consequences, and status.
+- **Architecture overview** — current component boundaries, ownership, and
+  sources of truth.
+- **Data-flow/state-machine documentation** — runtime flow, transitions, and
+  lifecycle behavior.
+- **Runbook** — setup, migration, deployment, release, recovery, testing, or
+  operational procedures.
+
+Documentation must describe the implemented system, not speculative future
+architecture.
+
+Historical ADRs should normally be marked `superseded` and linked to their
+replacement rather than deleted.
+
+A later documentation audit may verify completeness, but it must not be relied
+on to reconstruct missing architectural reasoning.
+
+Documentation-only follow-up changes may use focused diff review unless they
+alter an approved architecture or product decision.
+
+Trivial copy, styling, or isolated implementation changes normally require only
+a documented `no` conclusion in the Change Report, not new architecture
+documentation. Report the Documentation Impact fields using
+[AI Change Report Protocol](AI-Change-Report-Protocol.md).
+
 ## Completion rule
 
 A milestone is not complete just because the build passes.
@@ -199,4 +245,6 @@ A milestone is complete only when:
 - scope was respected
 - warnings in touched files are handled or explicitly justified
 - the change can be explained clearly
+- required documentation from the Documentation Impact assessment is included
+  or explicitly deferred with reviewer approval
 

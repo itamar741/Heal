@@ -26,6 +26,7 @@ Each report must answer:
 6. How should it be tested?
 7. Are there risks, shortcuts, or known issues?
 8. Did the touched files build without unresolved warnings?
+9. What is the Documentation Impact of the actual diff?
 
 ---
 
@@ -97,6 +98,35 @@ Fill all sections:
 11. Expected Result
 12. Known Issues / Follow-ups
 13. Suggested Git Commit
+14. Documentation Impact
+
+### Documentation Impact
+
+Every Change Report must include a Documentation Impact assessment based on the
+actual diff, not only the original prompt.
+
+Use this section in full milestone reports:
+
+```md
+## Documentation Impact
+
+- ADR required: yes/no
+- Architecture overview update required: yes/no
+- Ownership/data-flow or state-machine documentation update required: yes/no
+- Runbook, setup, migration, release, or test documentation update required: yes/no
+- Documentation files updated: <paths or none>
+- Reason: <brief explanation>
+```
+
+Rules:
+
+- Every `no` still requires a brief reason in `Reason`.
+- If documentation is required by the actual change, the milestone is not
+  complete until that documentation is included or explicitly deferred with
+  reviewer approval.
+- Small, isolated, local changes must not create unnecessary documentation work.
+- Decide which documentation types apply using the criteria in
+  [AI Coding Guardrails](AI-Coding-Guardrails.md) — Documentation evolution.
 
 ### Compact report (small isolated fixes)
 
@@ -107,6 +137,18 @@ For short fixes and emergency build-error fixes, use a compact report instead:
 - Verification result
 - Anything not verified
 - Scope deviation, if any
+- Documentation Impact (compact form below)
+
+Compact Documentation Impact may be shorter, but it may not omit the
+documentation-impact conclusion:
+
+```md
+## Documentation Impact
+
+- Documentation updates required: yes/no
+- Documentation files updated: <paths or none>
+- Reason: <brief explanation covering ADR / architecture / data-flow / runbook>
+```
 
 For documentation-only changes, use the compact report unless the reviewer asks for a full report.
 
@@ -162,9 +204,9 @@ Instead write:
 
 Choose the report level by task size (see [AI Coding Guardrails](AI-Coding-Guardrails.md) — Prompt strictness levels).
 
-**Milestones:** use the full Change Report (sections 1–13 below).
+**Milestones:** use the full Change Report (sections 1–14 below).
 
-**Small isolated fixes:** use the compact report (Files changed, What changed, Verification result, Anything not verified, Scope deviation if any).
+**Small isolated fixes:** use the compact report (Files changed, What changed, Verification result, Anything not verified, Scope deviation if any, Documentation Impact).
 
 Full milestone sections:
 
@@ -181,6 +223,7 @@ Full milestone sections:
 11. Expected Result
 12. Known Issues / Follow-ups
 13. Suggested Git Commit
+14. Documentation Impact
 
 ---
 
